@@ -251,3 +251,62 @@ async def cleanup_orphaned_time_slots(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to cleanup slots: {str(e)}"
         ) 
+
+
+@router.post("/{booking_id}/cancel", response_model=BookingResponse)
+async def cancel_booking(
+    booking_id: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Cancel an existing booking and free the associated time slot.
+
+    Permissions:
+    - Customer who created the booking can cancel it
+    - Service provider who owns the service can cancel it
+    """
+    # Find booking
+    booking = db.query(Booking).filter(Booking.id == booking_id).first()
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Booking not found"
+        )
+
+    # Prevent cancelling completed or already cancelled bookings
+    if booking.status in {"cancelled", "completed"}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot cancel a booking with status '{booking.status}'"
+        )
+
+    # Load related service and provider for permission check
+    service = db.query(Service).filter(Service.id == booking.service_id).first()
+    if not service:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Service not found")
+
+    # Permission checks
+    is_customer_owner = (current_user.user_type == "customer" and booking.customer_id == current_user.id)
+    is_provider_owner = False
+    if current_user.user_type == "service_provider":
+        provider = db.query(ServiceProvider).filter(ServiceProvider.user_id == current_user.id).first()
+        if provider and service.provider_id == provider.id:
+            is_provider_owner = True
+
+    if not (is_customer_owner or is_provider_owner):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to cancel this booking"
+        )
+
+    # Update booking status and free time slot
+    booking.status = "cancelled"
+    time_slot = db.query(TimeSlot).filter(TimeSlot.id == booking.time_slot_id).first()
+    if time_slot:
+        time_slot.is_booked = False
+
+    db.add(booking)
+    db.commit()
+    db.refresh(booking)
+
+    return booking

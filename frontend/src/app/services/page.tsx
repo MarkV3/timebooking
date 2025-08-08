@@ -78,7 +78,7 @@ export default function ServicesPage() {
             {/* Search Section */}
             <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold">Service Providers</h1>
+                <h1 className="text-3xl font-bold tracking-tight">Service Providers</h1>
                 <p className="text-muted-foreground">Find and book appointments with trusted professionals</p>
               </div>
               

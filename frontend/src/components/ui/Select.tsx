@@ -48,7 +48,7 @@ export function Select({
       <button
         type="button"
         className={cn(
-          "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 shadow-sm focus:shadow",
           className
         )}
         onClick={() => !disabled && setIsOpen(!isOpen)}
@@ -71,15 +71,15 @@ export function Select({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full z-50 mt-1 w-full rounded-md border border-input bg-background shadow-lg">
+        <div className="absolute top-full z-50 mt-1 w-full rounded-md border border-input bg-background/95 backdrop-blur-md shadow-xl">
           <div className="max-h-60 overflow-auto p-1">
             {options.map((option) => (
               <button
                 key={option.value}
                 type="button"
                 className={cn(
-                  "w-full rounded-sm px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground",
-                  value === option.value && "bg-accent text-accent-foreground"
+                  "w-full rounded-sm px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted",
+                  value === option.value && "bg-primary/10 text-primary"
                 )}
                 onClick={() => {
                   onValueChange(option.value)

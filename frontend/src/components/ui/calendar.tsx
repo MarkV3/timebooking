@@ -381,7 +381,7 @@ export function EnhancedCalendar({
 
   return (
     <Card className={`w-full ${className} shadow-lg border-0 bg-white`}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 bg-gray-50 border-b">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 bg-gray-50/60 backdrop-blur border-b">
         <div className="flex items-center gap-4">
           <Button
             variant="outline"
@@ -392,7 +392,7 @@ export function EnhancedCalendar({
             <ChevronLeft className="h-4 w-4" />
           </Button>
           
-          <h2 className="text-2xl font-bold text-gray-900">
+          <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
             {formatDate(currentDate, 'month')}
           </h2>
           
@@ -479,9 +479,26 @@ export function EnhancedCalendar({
                     </div>
                     
                     {hasEvents && day.isCurrentMonth && (
-                      <div className="flex-1 flex flex-col justify-center">
-                        <div className={`text-xs px-2 py-2 rounded-md text-center border ${availabilitySummary.bgColor} ${availabilitySummary.color} border-current border-opacity-20`}>
-                          <div className="font-medium">{availabilitySummary.text}</div>
+                      <div className="flex-1 flex flex-col justify-end">
+                        <div className="space-y-2">
+                          <div className={`text-xs px-2 py-1.5 rounded-md text-center border ${availabilitySummary.bgColor} ${availabilitySummary.color} border-current border-opacity-20`}>
+                            <div className="font-medium">{availabilitySummary.text}</div>
+                          </div>
+                          <div className="relative w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                            {(() => {
+                              const total = day.events.length || 1
+                              const available = day.events.filter(e => e.type === 'available').length
+                              const booked = day.events.filter(e => e.type === 'booked').length
+                              const availablePercent = (available / total) * 100
+                              const bookedPercent = (booked / total) * 100
+                              return (
+                                <>
+                                  <div className="absolute left-0 top-0 h-full bg-green-400/80" style={{ width: `${availablePercent}%` }} />
+                                  <div className="absolute left-0 top-0 h-full bg-red-400/80" style={{ width: `${bookedPercent}%`, transform: `translateX(${availablePercent}%)` }} />
+                                </>
+                              )
+                            })()}
+                          </div>
                         </div>
                       </div>
                     )}

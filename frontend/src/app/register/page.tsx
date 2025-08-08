@@ -92,17 +92,47 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Create an Account</CardTitle>
-          <CardDescription>
-            Join TimeBooking today!
-          </CardDescription>
-        </CardHeader>
-        
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Decorative background */}
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute top-1/2 -right-24 h-96 w-96 rounded-full bg-secondary/10 blur-3xl" />
+      </div>
+
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+          {/* Brand side */}
+          <div className="hidden lg:block">
+            <div className="rounded-2xl border border-border bg-white/70 backdrop-blur p-8 shadow-sm sticky top-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-sm">
+                  <span className="text-white font-bold">T</span>
+                </div>
+                <h1 className="text-2xl font-bold tracking-tight">TimeBooking</h1>
+              </div>
+              <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-4">
+                Create your account
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                Choose your role and start booking or offering services in minutes.
+              </p>
+              <ul className="space-y-3 text-sm">
+                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-primary rounded-full" /> Fast setup</li>
+                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-primary rounded-full" /> Clear, simple onboarding</li>
+                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-primary rounded-full" /> Great on desktop and mobile</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Form */}
+          <Card className="w-full max-w-xl mx-auto">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl font-bold tracking-tight">Create an account</CardTitle>
+              <CardDescription>Join TimeBooking today</CardDescription>
+            </CardHeader>
+            
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
             {/* User Type Selection */}
             <div>
               <label htmlFor="userType" className="block text-sm font-medium mb-2">
@@ -290,31 +320,33 @@ export default function RegisterPage() {
               </>
             )}
 
-            {error && (
-              <div className="text-red-600 text-sm bg-red-50 p-3 rounded-md">
-                {error}
+                {error && (
+                  <div className="text-red-600 text-sm bg-red-50 p-3 rounded-md">
+                    {error}
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={loading}
+                >
+                  {loading ? "Creating account..." : `Create ${formData.userType === 'service_provider' ? 'Provider' : 'Customer'} Account`}
+                </Button>
+              </form>
+
+              <div className="mt-6 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Already have an account?{" "}
+                  <Link href="/login" className="text-primary hover:underline">
+                    Sign in
+                  </Link>
+                </p>
               </div>
-            )}
-
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading}
-            >
-              {loading ? "Creating account..." : `Create ${formData.userType === 'service_provider' ? 'Provider' : 'Customer'} Account`}
-            </Button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              Already have an account?{" "}
-              <Link href="/login" className="text-primary hover:underline">
-                Sign in
-              </Link>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   )
 }

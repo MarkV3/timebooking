@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle, Button, Checkbox, Select } from "@/components/ui"
-import { Clock, Calendar, Plus, Trash2, Save, AlertCircle, Settings } from "lucide-react"
+import { Clock, Calendar, Plus, Trash2, Save, AlertCircle, Settings, ChevronDown, ChevronUp } from "lucide-react"
 import { apiService } from "@/lib/api"
 import { useAuth } from "@/contexts/AuthContext"
 import { stripSeconds } from "@/lib/utils"
@@ -629,262 +629,240 @@ export function NewTimeSlotManager() {
   return (
     <div className="w-full space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Schedule Management</h1>
-          <p className="text-gray-600 mt-1">Set your recurring schedule and manage specific exceptions</p>
+          <h1 className="text-2xl font-semibold text-foreground tracking-tight">Time Slots</h1>
+          <p className="text-sm text-muted-foreground mt-1">Configure your weekly availability and time slots</p>
         </div>
         <Button
           onClick={saveChanges}
           disabled={!hasUnsavedChanges || saveLoading}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
+          size="sm"
+          className="shrink-0"
         >
           <Save className="h-4 w-4 mr-2" />
           {saveLoading ? 'Saving...' : 'Save Changes'}
         </Button>
       </div>
 
-      {/* Loading state */}
-      {loading && (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your schedule settings...</p>
+      {/* Status Messages */}
+      {error && (
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-destructive" />
+            <p className="text-sm text-destructive">{error}</p>
+          </div>
         </div>
       )}
 
-      {/* Main content - only show when not loading */}
+      {hasUnsavedChanges && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <p className="text-sm text-amber-700">You have unsaved changes</p>
+          </div>
+        </div>
+      )}
+
+      {/* Main content */}
       {!loading && (
-        <>
-          {/* Error message */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="flex items-center gap-3">
-                <AlertCircle className="h-5 w-5 text-red-600" />
-                <div>
-                  <h3 className="font-medium text-red-900">Error</h3>
-                  <p className="text-sm text-red-700">{error}</p>
-                </div>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          
+          {/* LEFT PANEL: Weekly Schedule */}
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg">Weekly Schedule</CardTitle>
               </div>
-            </div>
-          )}
-
-          {/* Unsaved changes warning */}
-          {hasUnsavedChanges && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <div className="flex items-center gap-3">
-                <AlertCircle className="h-5 w-5 text-amber-600" />
-                <div>
-                  <h3 className="font-medium text-amber-900">Unsaved Changes</h3>
-                  <p className="text-sm text-amber-700">Remember to save your schedule configuration.</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Layout - Full width like tabs */}
-          <div className="w-full grid grid-cols-1 xl:grid-cols-2 gap-8">
-            
-            {/* LEFT PANEL: Recurring Schedule */}
-            <Card className="shadow-lg border-0 bg-white">
-              <CardHeader className="pb-6">
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <Calendar className="h-6 w-6 text-blue-600" />
-                  General Schedule
-                </CardTitle>
-                <p className="text-sm text-gray-600">Set your weekly recurring availability</p>
-              </CardHeader>
-              <CardContent className="space-y-8 p-6">
+            </CardHeader>
+            <CardContent className="space-y-6">
                 
-                {/* Default Schedule Settings */}
-                <div className="space-y-4 p-6 bg-gray-50 rounded-xl">
-                  <h3 className="font-semibold text-lg text-gray-900">Default Hours</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
-                      <Select
-                        value={recurringSchedule.defaultStartTime || ""}
-                        onValueChange={(value) => updateRecurringSchedule({ defaultStartTime: value })}
-                        options={timeOptions}
-                        placeholder={recurringSchedule.defaultStartTime || "09:00"}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">End Time</label>
-                      <Select
-                        value={recurringSchedule.defaultEndTime || ""}
-                        onValueChange={(value) => updateRecurringSchedule({ defaultEndTime: value })}
-                        options={timeOptions}
-                        placeholder={recurringSchedule.defaultEndTime || "17:00"}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Slot Duration</label>
-                      <Select
-                        value={recurringSchedule.defaultSlotDuration?.toString() || ""}
-                        onValueChange={(value) => updateRecurringSchedule({ defaultSlotDuration: parseInt(value) })}
-                        options={slotDurationOptions}
-                        placeholder={recurringSchedule.defaultSlotDuration ? `${recurringSchedule.defaultSlotDuration} min` : "30 min"}
-                      />
-                    </div>
+              {/* Default Hours */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-foreground">Default Hours</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-2">
+                    <label className="text-xs text-muted-foreground">Start</label>
+                    <Select
+                      value={recurringSchedule.defaultStartTime || ""}
+                      onValueChange={(value) => updateRecurringSchedule({ defaultStartTime: value })}
+                      options={timeOptions}
+                      placeholder="09:00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs text-muted-foreground">End</label>
+                    <Select
+                      value={recurringSchedule.defaultEndTime || ""}
+                      onValueChange={(value) => updateRecurringSchedule({ defaultEndTime: value })}
+                      options={timeOptions}
+                      placeholder="17:00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs text-muted-foreground">Duration</label>
+                    <Select
+                      value={recurringSchedule.defaultSlotDuration?.toString() || ""}
+                      onValueChange={(value) => updateRecurringSchedule({ defaultSlotDuration: parseInt(value) })}
+                      options={slotDurationOptions}
+                      placeholder="30 min"
+                    />
                   </div>
                 </div>
+              </div>
 
-                {/* Working Days */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-lg text-gray-900">Working Days</h3>
-                  <div className="grid grid-cols-7 gap-3">
-                    {daysOfWeek.map((day) => {
-                      const isEnabled = recurringSchedule.enabledDays.includes(day.value)
-                      return (
-                        <button
-                          key={day.value}
-                          onClick={() => {
-                            const newEnabledDays = isEnabled
-                              ? recurringSchedule.enabledDays.filter(d => d !== day.value)
-                              : [...recurringSchedule.enabledDays, day.value]
-                            updateRecurringSchedule({ enabledDays: newEnabledDays })
-                            
-                            // Remove day override if day is disabled
-                            if (isEnabled) {
-                              removeDayOverride(day.value)
-                            }
-                          }}
-                          className={`p-4 rounded-xl font-medium text-sm transition-all duration-200 ${
-                            isEnabled 
-                              ? 'bg-blue-500 text-white shadow-lg hover:bg-blue-600 transform hover:scale-105' 
-                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          }`}
-                        >
-                          {day.label}
-                        </button>
-                      )
-                    })}
-                  </div>
+              {/* Working Days */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-foreground">Working Days</h3>
+                <div className="grid grid-cols-7 gap-2">
+                  {daysOfWeek.map((day) => {
+                    const isEnabled = recurringSchedule.enabledDays.includes(day.value)
+                    return (
+                      <Button
+                        key={day.value}
+                        onClick={() => {
+                          const newEnabledDays = isEnabled
+                            ? recurringSchedule.enabledDays.filter(d => d !== day.value)
+                            : [...recurringSchedule.enabledDays, day.value]
+                          updateRecurringSchedule({ enabledDays: newEnabledDays })
+                          
+                          // Remove day override if day is disabled
+                          if (isEnabled) {
+                            removeDayOverride(day.value)
+                          }
+                        }}
+                        variant={isEnabled ? "primary" : "outline"}
+                        size="sm"
+                        className="h-10 text-xs"
+                      >
+                        {day.label}
+                      </Button>
+                    )
+                  })}
                 </div>
+              </div>
 
-                {/* Advanced Settings Toggle */}
-                <div className="space-y-4">
-                  <button
-                    onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
-                    className={`w-full p-4 rounded-xl font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
-                      showAdvancedSettings
-                        ? 'bg-gray-800 text-white shadow-lg'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    <Settings className="h-4 w-4" />
-                    {showAdvancedSettings ? 'Hide Advanced Settings' : 'Show Advanced Settings'}
-                  </button>
+              {/* Advanced Settings Toggle */}
+              <div className="space-y-4">
+                <Button
+                  onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
+                  variant={showAdvancedSettings ? "secondary" : "outline"}
+                  size="sm"
+                  className="w-full"
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  {showAdvancedSettings ? 'Hide' : 'Show'} Advanced Settings
+                  {showAdvancedSettings ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
+                </Button>
 
-                  {/* Day-Specific Overrides - Advanced Settings */}
-                  {showAdvancedSettings && (
-                    <div className="space-y-4 p-6 bg-blue-50 rounded-xl border-2 border-blue-200">
-                      <h3 className="font-semibold text-lg text-gray-900">Day-Specific Rules</h3>
-                      <p className="text-sm text-gray-600">Set different hours for specific days of the week</p>
-                      <div className="space-y-3">
-                        {daysOfWeek
-                          .filter(day => recurringSchedule.enabledDays.includes(day.value))
-                          .map((day) => {
-                            const dayOverride = recurringSchedule.dayOverrides.find(d => d.dayOfWeek === day.value)
-                            const hasOverride = !!dayOverride
-                            
-                            return (
-                              <div key={day.value} className="p-5 bg-white rounded-xl border hover:border-blue-300 transition-all duration-200 shadow-sm">
-                                <div className="flex items-center justify-between mb-4">
-                                  <span className="font-semibold text-sm">{day.name}</span>
-                                  <button
-                                    onClick={() => {
-                                      if (hasOverride) {
-                                        removeDayOverride(day.value)
-                                      } else {
-                                        updateDayOverride(day.value, {
-                                          startTime: recurringSchedule.defaultStartTime,
-                                          endTime: recurringSchedule.defaultEndTime,
-                                          slotDuration: recurringSchedule.defaultSlotDuration
-                                        })
-                                      }
-                                    }}
-                                    className={`px-4 py-2 rounded-full font-medium text-xs transition-all duration-200 ${
-                                      hasOverride
-                                        ? 'bg-blue-500 text-white shadow-md hover:bg-blue-600'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                    }`}
-                                  >
-                                    {hasOverride ? 'Custom' : 'Default'}
-                                  </button>
-                                </div>
+                {/* Day-Specific Overrides - Advanced Settings */}
+                {showAdvancedSettings && (
+                  <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-medium text-foreground">Day-Specific Rules</h4>
+                      <p className="text-xs text-muted-foreground">Override default hours for specific days</p>
+                    </div>
+                    <div className="space-y-3">
+                      {daysOfWeek
+                        .filter(day => recurringSchedule.enabledDays.includes(day.value))
+                        .map((day) => {
+                          const dayOverride = recurringSchedule.dayOverrides.find(d => d.dayOfWeek === day.value)
+                          const hasOverride = !!dayOverride
+                          
+                          return (
+                            <div key={day.value} className="p-3 bg-background rounded-md border">
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-sm font-medium">{day.name}</span>
+                                <Button
+                                  onClick={() => {
+                                    if (hasOverride) {
+                                      removeDayOverride(day.value)
+                                    } else {
+                                      updateDayOverride(day.value, {
+                                        startTime: recurringSchedule.defaultStartTime,
+                                        endTime: recurringSchedule.defaultEndTime,
+                                        slotDuration: recurringSchedule.defaultSlotDuration
+                                      })
+                                    }
+                                  }}
+                                  variant={hasOverride ? "secondary" : "outline"}
+                                  size="sm"
+                                  className="h-7 px-3 text-xs"
+                                >
+                                  {hasOverride ? 'Custom' : 'Default'}
+                                </Button>
+                              </div>
                                 
-                                {hasOverride && (
-                                  <div className="space-y-3">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              {hasOverride && (
+                                <div className="space-y-3">
+                                  <div className="grid grid-cols-3 gap-3">
+                                    <Select
+                                      value={dayOverride.startTime || recurringSchedule.defaultStartTime}
+                                      onValueChange={(value) => updateDayOverride(day.value, { 
+                                        ...dayOverride, 
+                                        startTime: value 
+                                      })}
+                                      options={timeOptions}
+                                    />
+                                    <Select
+                                      value={dayOverride.endTime || recurringSchedule.defaultEndTime}
+                                      onValueChange={(value) => updateDayOverride(day.value, { 
+                                        ...dayOverride, 
+                                        endTime: value 
+                                      })}
+                                      options={timeOptions}
+                                    />
+                                    <Select
+                                      value={(dayOverride.slotDuration || recurringSchedule.defaultSlotDuration).toString()}
+                                      onValueChange={(value) => updateDayOverride(day.value, { 
+                                        ...dayOverride, 
+                                        slotDuration: parseInt(value) 
+                                      })}
+                                      options={slotDurationOptions}
+                                    />
+                                  </div>
+                                    
+                                  {/* Day-specific break time */}
+                                  <div className="flex items-center justify-between pt-3 border-t">
+                                    <span className="text-xs text-muted-foreground">Break time</span>
+                                    <Button
+                                      onClick={() => {
+                                        updateDayOverride(day.value, {
+                                          ...dayOverride,
+                                          breakTime: dayOverride.breakTime 
+                                            ? undefined
+                                            : { startTime: "12:00", endTime: "13:00" }
+                                        })
+                                      }}
+                                      variant={dayOverride.breakTime ? "secondary" : "outline"}
+                                      size="sm"
+                                      className="h-6 px-2 text-xs"
+                                    >
+                                      {dayOverride.breakTime ? 'Custom' : 'None'}
+                                    </Button>
+                                  </div>
+                                  
+                                  {dayOverride.breakTime && (
+                                    <div className="grid grid-cols-2 gap-2">
                                       <Select
-                                        value={dayOverride.startTime || recurringSchedule.defaultStartTime}
-                                        onValueChange={(value) => updateDayOverride(day.value, { 
-                                          ...dayOverride, 
-                                          startTime: value 
+                                        value={dayOverride.breakTime.startTime}
+                                        onValueChange={(value) => updateDayOverride(day.value, {
+                                          ...dayOverride,
+                                          breakTime: { ...dayOverride.breakTime!, startTime: value }
                                         })}
                                         options={timeOptions}
                                       />
                                       <Select
-                                        value={dayOverride.endTime || recurringSchedule.defaultEndTime}
-                                        onValueChange={(value) => updateDayOverride(day.value, { 
-                                          ...dayOverride, 
-                                          endTime: value 
+                                        value={dayOverride.breakTime.endTime}
+                                        onValueChange={(value) => updateDayOverride(day.value, {
+                                          ...dayOverride,
+                                          breakTime: { ...dayOverride.breakTime!, endTime: value }
                                         })}
                                         options={timeOptions}
                                       />
-                                      <Select
-                                        value={(dayOverride.slotDuration || recurringSchedule.defaultSlotDuration).toString()}
-                                        onValueChange={(value) => updateDayOverride(day.value, { 
-                                          ...dayOverride, 
-                                          slotDuration: parseInt(value) 
-                                        })}
-                                        options={slotDurationOptions}
-                                      />
                                     </div>
-                                    
-                                    {/* Day-specific break time */}
-                                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
-                                      <span className="text-sm text-gray-700">Custom break time</span>
-                                      <button
-                                        onClick={() => {
-                                          updateDayOverride(day.value, {
-                                            ...dayOverride,
-                                            breakTime: dayOverride.breakTime 
-                                              ? undefined
-                                              : { startTime: "12:00", endTime: "13:00" }
-                                          })
-                                        }}
-                                        className={`px-4 py-2 rounded-full font-medium text-xs transition-all duration-200 ${
-                                          dayOverride.breakTime
-                                            ? 'bg-yellow-500 text-white shadow-md hover:bg-yellow-600'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                        }`}
-                                      >
-                                        {dayOverride.breakTime ? 'Custom' : 'Default'}
-                                      </button>
-                                    </div>
-                                    
-                                    {dayOverride.breakTime && (
-                                      <div className="grid grid-cols-2 gap-3 mt-3">
-                                        <Select
-                                          value={dayOverride.breakTime.startTime}
-                                          onValueChange={(value) => updateDayOverride(day.value, {
-                                            ...dayOverride,
-                                            breakTime: { ...dayOverride.breakTime!, startTime: value }
-                                          })}
-                                          options={timeOptions}
-                                        />
-                                        <Select
-                                          value={dayOverride.breakTime.endTime}
-                                          onValueChange={(value) => updateDayOverride(day.value, {
-                                            ...dayOverride,
-                                            breakTime: { ...dayOverride.breakTime!, endTime: value }
-                                          })}
-                                          options={timeOptions}
-                                        />
-                                      </div>
-                                    )}
+                                  )}
                                   </div>
                                 )}
                               </div>
@@ -895,220 +873,211 @@ export function NewTimeSlotManager() {
                   )}
                 </div>
 
-                  {/* Default Break Time */}
-                  <div className="space-y-4 p-6 bg-yellow-50 rounded-xl border border-yellow-200">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-lg text-gray-900">Default Break Time</h3>
-                      <button
-                        onClick={() => {
-                          updateRecurringSchedule({
-                            breakTime: recurringSchedule.breakTime ? undefined : { startTime: "12:00", endTime: "13:00" }
-                          })
-                        }}
-                        className={`px-6 py-3 rounded-full font-medium text-sm transition-all duration-200 ${
-                          recurringSchedule.breakTime
-                            ? 'bg-yellow-500 text-white shadow-lg hover:bg-yellow-600'
-                            : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        {recurringSchedule.breakTime ? 'Enabled' : 'Disabled'}
-                      </button>
-                    </div>
-                    {recurringSchedule.breakTime && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Start</label>
-                          <Select
-                            value={recurringSchedule.breakTime.startTime || ""}
-                            onValueChange={(value) => updateRecurringSchedule({
-                              breakTime: { ...recurringSchedule.breakTime!, startTime: value }
-                            })}
-                            options={timeOptions}
-                            placeholder={recurringSchedule.breakTime.startTime || "12:00"}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">End</label>
-                          <Select
-                            value={recurringSchedule.breakTime.endTime || ""}
-                            onValueChange={(value) => updateRecurringSchedule({
-                              breakTime: { ...recurringSchedule.breakTime!, endTime: value }
-                            })}
-                            options={timeOptions}
-                            placeholder={recurringSchedule.breakTime.endTime || "13:00"}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Live Preview for Recurring Schedule */}
-                  <div className="border rounded-xl p-6 bg-white shadow-sm" key={forceUpdateCounter}>
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold text-lg text-gray-900">Weekly Preview</h3>
+              {/* Default Break Time */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-foreground">Default Break Time</h3>
+                  <Button
+                    onClick={() => {
+                      updateRecurringSchedule({
+                        breakTime: recurringSchedule.breakTime ? undefined : { startTime: "12:00", endTime: "13:00" }
+                      })
+                    }}
+                    variant={recurringSchedule.breakTime ? "secondary" : "outline"}
+                    size="sm"
+                    className="h-8 px-3 text-xs"
+                  >
+                    {recurringSchedule.breakTime ? 'Enabled' : 'Disabled'}
+                  </Button>
+                </div>
+                {recurringSchedule.breakTime && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <label className="text-xs text-muted-foreground">Start</label>
                       <Select
-                        value={previewDay.toString()}
-                        onValueChange={(value) => setPreviewDay(parseInt(value))}
-                        options={daysOfWeek.map(day => ({
-                          value: day.value.toString(),
-                          label: day.name
-                        }))}
+                        value={recurringSchedule.breakTime.startTime || ""}
+                        onValueChange={(value) => updateRecurringSchedule({
+                          breakTime: { ...recurringSchedule.breakTime!, startTime: value }
+                        })}
+                        options={timeOptions}
+                        placeholder="12:00"
                       />
                     </div>
-                    <div className="max-h-80 overflow-y-auto space-y-2">
-                      {recurringPreviewSlots.length > 0 ? (
-                        recurringPreviewSlots.map((slot, index) => (
-                          <div
-                            key={index}
-                            className={`p-3 rounded-lg text-sm transition-all duration-200 ${
-                              slot.status === 'available' 
-                                ? 'bg-green-50 text-green-900 border border-green-200 hover:bg-green-100' 
-                                : 'bg-yellow-50 text-yellow-900 border border-yellow-200 hover:bg-yellow-100'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium">{slot.time}</span>
-                              <span className="text-xs capitalize font-semibold">{slot.status}</span>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-12 text-gray-500">
-                          <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p className="text-sm">Day is unavailable</p>
-                        </div>
-                      )}
+                    <div className="space-y-2">
+                      <label className="text-xs text-muted-foreground">End</label>
+                      <Select
+                        value={recurringSchedule.breakTime.endTime || ""}
+                        onValueChange={(value) => updateRecurringSchedule({
+                          breakTime: { ...recurringSchedule.breakTime!, endTime: value }
+                        })}
+                        options={timeOptions}
+                        placeholder="13:00"
+                      />
                     </div>
-                    {recurringPreviewSlots.length > 0 && (
-                      <div className="mt-4 pt-4 border-t text-sm text-gray-600">
-                        <div className="flex justify-between">
-                          <span>Total slots: <span className="font-semibold">{recurringPreviewSlots.length}</span></span>
-                          <span>Available: <span className="font-semibold text-green-600">{recurringPreviewSlots.filter(s => s.status === 'available').length}</span></span>
+                  </div>
+                )}
+              </div>
+
+              {/* Preview */}
+              <div className="space-y-4" key={forceUpdateCounter}>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-foreground">Preview</h3>
+                  <Select
+                    value={previewDay.toString()}
+                    onValueChange={(value) => setPreviewDay(parseInt(value))}
+                    options={daysOfWeek.map(day => ({
+                      value: day.value.toString(),
+                      label: day.name
+                    }))}
+                  />
+                </div>
+                <div className="max-h-64 overflow-y-auto space-y-1">
+                  {recurringPreviewSlots.length > 0 ? (
+                    recurringPreviewSlots.map((slot, index) => (
+                      <div
+                        key={index}
+                        className={`p-2 rounded-md text-xs ${
+                          slot.status === 'available' 
+                            ? 'bg-primary/10 text-primary border border-primary/20' 
+                            : 'bg-muted text-muted-foreground border border-border'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{slot.time}</span>
+                          <span className="capitalize text-[10px]">{slot.status}</span>
                         </div>
                       </div>
-                    )}
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-xs">No slots available</p>
+                    </div>
+                  )}
+                </div>
+                {recurringPreviewSlots.length > 0 && (
+                  <div className="pt-3 border-t text-xs text-muted-foreground">
+                    <div className="flex justify-between">
+                      <span>Total: {recurringPreviewSlots.length}</span>
+                      <span>Available: {recurringPreviewSlots.filter(s => s.status === 'available').length}</span>
+                    </div>
                   </div>
+                )}
+              </div>
 
               </CardContent>
             </Card>
 
             {/* RIGHT PANEL: Specific Overrides */}
-            <Card className="shadow-lg border-0 bg-white">
-              <CardHeader className="pb-6">
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <Settings className="h-6 w-6 text-purple-600" />
-                  Schedule Exceptions
-                </CardTitle>
-                <p className="text-sm text-gray-600">Override specific dates or recurring patterns</p>
+            <Card>
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-lg">Schedule Exceptions</CardTitle>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-8 p-6">
+              <CardContent className="space-y-6">
                 
                 {/* Add New Override */}
-                <div className="p-8 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200 space-y-6">
-                  <h3 className="font-semibold text-xl text-gray-900">Add Schedule Exception</h3>
-                  <AddOverrideForm onAdd={addSpecificOverride} />
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-foreground">Add Exception</h3>
+                  <div className="p-4 bg-muted/30 rounded-lg border">
+                    <AddOverrideForm onAdd={addSpecificOverride} />
+                  </div>
                 </div>
 
                 {/* Existing Overrides */}
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-xl text-gray-900">Current Exceptions</h3>
+                    <h3 className="text-sm font-medium text-foreground">Exceptions</h3>
                     {specificOverrides.length > 0 && (
-                      <span className="px-3 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
+                      <span className="px-2 py-1 bg-primary/10 text-primary rounded-md text-xs font-medium">
                         {specificOverrides.length}
                       </span>
                     )}
                   </div>
-                  <div className="space-y-4 max-h-80 overflow-y-auto">
+                  <div className="space-y-3 max-h-64 overflow-y-auto">
                     {specificOverrides
-                      .sort((a, b) => a.date.localeCompare(b.date)) // Sort by date
+                      .sort((a, b) => a.date.localeCompare(b.date))
                       .map((override) => {
-                        const typeIcons = {
-                          unavailable: '🚫',
-                          custom_schedule: '⏰', 
-                          break_change: '☕'
-                        }
                         const typeColors = {
-                          unavailable: 'bg-red-50 border-red-200 text-red-700',
-                          custom_schedule: 'bg-blue-50 border-blue-200 text-blue-700',
-                          break_change: 'bg-yellow-50 border-yellow-200 text-yellow-700'
+                          unavailable: 'bg-destructive/10 border-destructive/20 text-destructive',
+                          custom_schedule: 'bg-primary/10 border-primary/20 text-primary',
+                          break_change: 'bg-amber-50 border-amber-200 text-amber-700'
                         }
                         
                         return (
-                          <div key={override.id} className={`p-5 rounded-xl border-2 transition-all duration-200 hover:shadow-lg ${typeColors[override.type]}`}>
+                          <div key={override.id} className={`p-3 rounded-md border ${typeColors[override.type]}`}>
                             <div className="flex items-start justify-between">
-                              <div className="flex items-start gap-4">
-                                <span className="text-xl">{typeIcons[override.type]}</span>
-                                <div>
-                                  <p className="font-semibold text-sm">{override.date}</p>
-                                  <p className="text-sm font-medium capitalize mt-1">{override.type.replace('_', ' ')}</p>
-                                  {override.reason && <p className="text-sm mt-2 opacity-75">{override.reason}</p>}
-                                </div>
+                              <div className="space-y-1">
+                                <p className="text-sm font-medium">{override.date}</p>
+                                <p className="text-xs capitalize">{override.type.replace('_', ' ')}</p>
+                                {override.reason && <p className="text-xs opacity-75">{override.reason}</p>}
                               </div>
-                              <button
+                              <Button
                                 onClick={() => removeSpecificOverride(override.id)}
-                                className="p-2 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-lg transition-all duration-200"
-                                title="Remove exception"
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 text-destructive hover:text-destructive"
                               >
-                                <Trash2 className="h-5 w-5" />
-                              </button>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
                             </div>
                           </div>
                         )
                       })}
                     {specificOverrides.length === 0 && (
-                      <div className="text-center py-12">
-                        <div className="text-5xl mb-4">📅</div>
-                        <p className="text-gray-500 text-sm">No exceptions set yet</p>
-                        <p className="text-gray-400 text-sm mt-2">Add your first exception above</p>
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-xs">No exceptions set</p>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Live Preview for Specific Date */}
-                <div className="border rounded-xl p-6 bg-white shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-lg text-gray-900">Date Preview</h3>
+                {/* Date Preview */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-foreground">Date Preview</h3>
                     <input
                       type="date"
                       value={previewDate}
                       onChange={(e) => setPreviewDate(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      className="px-2 py-1 border border-border rounded-md text-xs"
                       min={new Date().toISOString().split('T')[0]}
                     />
                   </div>
-                  <div className="max-h-80 overflow-y-auto space-y-2">
+                  <div className="max-h-64 overflow-y-auto space-y-1">
                     {specificPreviewSlots.length > 0 ? (
                       specificPreviewSlots.map((slot, index) => (
                         <div
                           key={index}
-                          className={`p-3 rounded-lg text-sm transition-all duration-200 ${
+                          className={`p-2 rounded-md text-xs ${
                             slot.status === 'available' 
-                              ? 'bg-green-50 text-green-900 border border-green-200 hover:bg-green-100' 
+                              ? 'bg-primary/10 text-primary border border-primary/20' 
                               : slot.status === 'break'
-                              ? 'bg-yellow-50 text-yellow-900 border border-yellow-200 hover:bg-yellow-100'
-                              : 'bg-red-50 text-red-900 border border-red-200 hover:bg-red-100'
+                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                              : 'bg-destructive/10 text-destructive border border-destructive/20'
                           }`}
                         >
                           <div className="flex items-center justify-between">
                             <span className="font-medium">{slot.time}</span>
-                            <span className="text-xs capitalize font-semibold">{slot.status}</span>
+                            <span className="capitalize text-[10px]">{slot.status}</span>
                           </div>
                         </div>
                       ))
                     ) : (
-                      <div className="text-center py-12 text-gray-500">
-                        <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p className="text-sm">Day is unavailable</p>
+                      <div className="text-center py-8 text-muted-foreground">
+                        <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-xs">Day unavailable</p>
                       </div>
                     )}
                   </div>
                   {specificPreviewSlots.length > 0 && (
-                    <div className="mt-4 pt-4 border-t text-sm text-gray-600">
+                    <div className="pt-3 border-t text-xs text-muted-foreground">
                       <div className="flex justify-between">
-                        <span>Total slots: <span className="font-semibold">{specificPreviewSlots.length}</span></span>
-                        <span>Available: <span className="font-semibold text-green-600">{specificPreviewSlots.filter(s => s.status === 'available').length}</span></span>
+                        <span>Total: {specificPreviewSlots.length}</span>
+                        <span>Available: {specificPreviewSlots.filter(s => s.status === 'available').length}</span>
                       </div>
                     </div>
                   )}
@@ -1118,8 +1087,7 @@ export function NewTimeSlotManager() {
             </Card>
 
           </div>
-        </>
-      )}
+        )}
     </div>
   )
 }
@@ -1351,4 +1319,5 @@ function AddOverrideForm({ onAdd }: { onAdd: (override: Omit<SpecificOverride, '
       </button>
     </div>
   )
-} 
+}
+

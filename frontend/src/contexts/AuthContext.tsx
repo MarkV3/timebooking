@@ -9,6 +9,7 @@ interface AuthContextType {
   loading: boolean
   isAuthenticated: boolean
   login: (email: string, password: string) => Promise<void>
+  googleLogin: (token: string) => Promise<void>
   logout: () => void
   refreshUser: () => Promise<void>
 }
@@ -76,6 +77,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const googleLogin = async (token: string) => {
+    try {
+      setLoading(true)
+      await authService.googleLogin(token)
+      const user = authService.getUser()
+      setUser(user)
+      
+      // Redirect based on user type
+      if (user?.user_type === 'service_provider') {
+        router.push('/providers/dashboard')
+      } else {
+        router.push('/services')
+      }
+    } catch (error) {
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const logout = () => {
     authService.logout()
     setUser(null)
@@ -98,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     isAuthenticated,
     login,
+    googleLogin,
     logout,
     refreshUser
   }

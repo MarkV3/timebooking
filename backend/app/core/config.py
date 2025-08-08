@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     # Debug
     DEBUG: bool = os.getenv("DEBUG", "true").lower() == "true"
 
+    # Google Auth
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "your-google-client-id")
+
     class Config:
         case_sensitive = True
         env_file = ".env"

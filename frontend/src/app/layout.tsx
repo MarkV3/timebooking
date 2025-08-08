@@ -8,6 +8,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { GlobalLoadingIndicator } from "@/components/ui/GlobalLoadingIndicator";
 import { LoadingInitializer } from "@/components/LoadingInitializer";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -35,19 +36,21 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${montserrat.variable}`} suppressHydrationWarning>
       <body className="antialiased" suppressHydrationWarning={true}>
         <LoadingProvider>
-          <TimezoneProvider>
-            <AuthProvider>
-              <LoadingInitializer />
-              <div className="min-h-screen flex flex-col">
-                <Header />
-                <main className="flex-1">
-                  {children}
-                </main>
-                <Footer />
-              </div>
-              <GlobalLoadingIndicator />
-            </AuthProvider>
-          </TimezoneProvider>
+          <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}>
+            <TimezoneProvider>
+              <AuthProvider>
+                <LoadingInitializer />
+                <div className="min-h-screen flex flex-col">
+                  <Header />
+                  <main className="flex-1">
+                    {children}
+                  </main>
+                  <Footer />
+                </div>
+                <GlobalLoadingIndicator />
+              </AuthProvider>
+            </TimezoneProvider>
+          </GoogleOAuthProvider>
         </LoadingProvider>
       </body>
     </html>

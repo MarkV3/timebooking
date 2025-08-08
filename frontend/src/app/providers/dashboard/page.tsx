@@ -41,10 +41,8 @@ export default function ProviderDashboard() {
   const loadServices = async () => {
     try {
       setLoading(true)
-      // This would need to be implemented in the API
-      // const data = await apiService.getMyServices()
-      // setServices(data)
-      setServices([]) // Placeholder
+      const data = await apiService.getMyServices()
+      setServices(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load services')
     } finally {
@@ -85,10 +83,10 @@ export default function ProviderDashboard() {
     <ProtectedRoute allowedUserTypes={['service_provider']}>
       <div className="min-h-screen bg-background">
         {/* Header */}
-        <div className="border-b bg-white">
+        <div className="border-b bg-white/80 backdrop-blur">
           <div className="container mx-auto px-4 py-4">
             <div>
-              <h1 className="text-2xl font-bold text-primary">Provider Dashboard</h1>
+              <h1 className="text-2xl font-bold text-foreground tracking-tight">Provider Dashboard</h1>
               <p className="text-sm text-muted-foreground">Welcome back, {user?.full_name}</p>
             </div>
           </div>
@@ -98,7 +96,7 @@ export default function ProviderDashboard() {
           <div className="space-y-6">
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-5 rounded-lg">
                 <TabsTrigger value="time-slots">Time Slots</TabsTrigger>
                 <TabsTrigger value="availability">Calendar</TabsTrigger>
                 <TabsTrigger value="services">Services</TabsTrigger>
@@ -123,12 +121,12 @@ export default function ProviderDashboard() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       <div className="flex justify-between items-center">
                         <h3 className="text-lg font-semibold">Your Services</h3>
-                        <Button size="sm">Add New Service</Button>
+                        <Button size="sm" onClick={loadServices}>Refresh</Button>
                       </div>
-                      
+
                       {loading ? (
                         <div className="text-center py-8">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -138,7 +136,7 @@ export default function ProviderDashboard() {
                         <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
                           <h3 className="text-lg font-semibold text-muted-foreground mb-2">No Services Yet</h3>
                           <p className="text-muted-foreground mb-4">Create your first service to start accepting bookings</p>
-                          <Button>Create Service</Button>
+                          <Button onClick={() => alert('Service creation coming soon')}>Create Service</Button>
                         </div>
                       ) : (
                         <div className="space-y-4">
@@ -154,8 +152,8 @@ export default function ProviderDashboard() {
                                   <div className="text-right">
                                     <p className="font-bold text-primary">{formatPrice(service.price)}</p>
                                     <div className="flex gap-2 mt-2">
-                                      <Button variant="outline" size="sm">Edit</Button>
-                                      <Button variant="destructive" size="sm">Delete</Button>
+                                      <Button variant="outline" size="sm" onClick={() => alert('Edit service coming soon')}>Edit</Button>
+                                      <Button variant="destructive" size="sm" onClick={() => alert('Delete service coming soon')}>Delete</Button>
                                     </div>
                                   </div>
                                 </div>

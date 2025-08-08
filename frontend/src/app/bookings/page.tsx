@@ -84,13 +84,23 @@ export default function MyBookingsPage() {
     return parseDateTime(startTime) > new Date()
   }
 
+  const handleCancel = async (bookingId: string) => {
+    try {
+      setError("")
+      const updated = await apiService.cancelBooking(bookingId)
+      setBookings(prev => prev.map(b => (b.id === updated.id ? updated : b)))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to cancel booking")
+    }
+  }
+
   return (
     <ProtectedRoute allowedUserTypes={["customer"]}>
       <div className="min-h-screen bg-background">
         {/* Header */}
-        <div className="border-b bg-white">
+        <div className="border-b bg-white/80 backdrop-blur">
           <div className="container mx-auto px-4 py-4">
-            <h1 className="text-2xl font-bold text-primary">My Bookings</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">My Bookings</h1>
             <p className="text-muted-foreground mt-1">View and manage your appointments</p>
           </div>
         </div>
@@ -200,7 +210,12 @@ export default function MyBookingsPage() {
                               </Button>
                             </Link>
                             {booking.status === "confirmed" && upcoming && (
-                              <Button variant="outline" size="sm" className="w-full lg:w-auto text-red-600 hover:text-red-700">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="w-full lg:w-auto text-red-600 hover:text-red-700"
+                                onClick={() => handleCancel(booking.id)}
+                              >
                                 Cancel Booking
                               </Button>
                             )}

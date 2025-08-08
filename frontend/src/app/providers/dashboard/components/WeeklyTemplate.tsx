@@ -77,11 +77,11 @@ export function WeeklyTemplate() {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle>Working Hours</CardTitle>
+          <CardTitle className="text-lg">Working Hours</CardTitle>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={copyToAll}>
+            <Button variant="soft" size="sm" onClick={copyToAll}>
               Copy Mon to All
             </Button>
             <Button size="sm" onClick={handleSave}>
@@ -91,20 +91,23 @@ export function WeeklyTemplate() {
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2">
         {daysOfWeek.map((day) => {
           const template = templates.find(t => t.dayOfWeek === day.value)!
           
           return (
-            <div key={day.value} className="flex items-center gap-4 p-3 border rounded-lg">
-              <div className="w-12">
+            <div
+              key={day.value}
+              className="grid grid-cols-[40px_40px_1fr_20px_1fr_80px] items-center gap-3 p-3 border rounded-md bg-background hover:bg-muted/30 transition-colors"
+            >
+              <div className="flex items-center justify-center">
                 <Checkbox
                   checked={template.isEnabled}
                   onCheckedChange={(checked) => updateTemplate(day.value, { isEnabled: checked })}
                 />
               </div>
               
-              <div className="w-12 text-sm font-medium">{day.label}</div>
+              <div className="text-sm font-medium text-foreground">{day.label}</div>
               
               {template.isEnabled ? (
                 <>
@@ -113,7 +116,7 @@ export function WeeklyTemplate() {
                     onValueChange={(value) => updateTemplate(day.value, { startTime: value })}
                     options={timeOptions}
                   />
-                  <span className="text-muted-foreground">to</span>
+                  <span className="text-xs text-muted-foreground">to</span>
                   <Select
                     value={template.endTime}
                     onValueChange={(value) => updateTemplate(day.value, { endTime: value })}
@@ -126,7 +129,7 @@ export function WeeklyTemplate() {
                   />
                 </>
               ) : (
-                <span className="text-muted-foreground text-sm">Unavailable</span>
+                <div className="col-span-4 text-xs text-muted-foreground">Unavailable</div>
               )}
             </div>
           )

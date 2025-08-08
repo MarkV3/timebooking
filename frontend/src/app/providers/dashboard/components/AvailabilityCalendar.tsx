@@ -216,22 +216,22 @@ export function AvailabilityCalendar() {
     if (!day.isCurrentMonth) return 'bg-gray-50/70 border-gray-100 text-gray-400'
     
     if (day.slotsCount === 0) {
-      return 'bg-gradient-to-br from-gray-50 to-gray-100/70 border-gray-200 text-gray-600 hover:from-gray-100 hover:to-gray-150 hover:shadow-md hover:border-gray-300'
+      return 'bg-gradient-to-br from-gray-50 to-gray-100/70 border-gray-200 text-gray-600 hover:from-gray-100 hover:to-gray-200 hover:shadow-md hover:border-gray-300'
     }
     
     // Enhanced but refined styling for days with slots
-    const baseClasses = 'border transition-all duration-250 hover:scale-[1.01] hover:shadow-lg'
+    const baseClasses = 'border transition-all duration-200 hover:scale-[1.01] hover:shadow-lg'
     
     if (day.bookingPercentage === 0) {
-      return `${baseClasses} bg-gradient-to-br from-emerald-50 to-green-100/60 border-emerald-200 text-gray-900 hover:from-emerald-100 hover:to-green-150 hover:shadow-emerald-200/30 hover:border-emerald-300`
+      return `${baseClasses} bg-gradient-to-br from-emerald-50 to-green-100/60 border-emerald-200 text-gray-900 hover:from-emerald-100 hover:to-green-200 hover:shadow-emerald-200/30 hover:border-emerald-300`
     } else if (day.bookingPercentage <= 0.3) {
-      return `${baseClasses} bg-gradient-to-br from-green-50 to-lime-100/60 border-green-200 text-gray-900 hover:from-green-100 hover:to-lime-150 hover:shadow-green-200/30 hover:border-green-300`
+      return `${baseClasses} bg-gradient-to-br from-green-50 to-lime-100/60 border-green-200 text-gray-900 hover:from-green-100 hover:to-lime-200 hover:shadow-green-200/30 hover:border-green-300`
     } else if (day.bookingPercentage <= 0.6) {
-      return `${baseClasses} bg-gradient-to-br from-amber-50 to-yellow-100/60 border-amber-200 text-gray-900 hover:from-amber-100 hover:to-yellow-150 hover:shadow-amber-200/30 hover:border-amber-300`
+      return `${baseClasses} bg-gradient-to-br from-amber-50 to-yellow-100/60 border-amber-200 text-gray-900 hover:from-amber-100 hover:to-yellow-200 hover:shadow-amber-200/30 hover:border-amber-300`
     } else if (day.bookingPercentage < 1) {
-      return `${baseClasses} bg-gradient-to-br from-orange-50 to-red-100/60 border-orange-200 text-gray-900 hover:from-orange-100 hover:to-red-150 hover:shadow-orange-200/30 hover:border-orange-300`
+      return `${baseClasses} bg-gradient-to-br from-orange-50 to-red-100/60 border-orange-200 text-gray-900 hover:from-orange-100 hover:to-red-100 hover:shadow-orange-200/30 hover:border-orange-300`
     } else {
-      return `${baseClasses} bg-gradient-to-br from-red-50 to-red-100/60 border-red-200 text-gray-900 hover:from-red-100 hover:to-red-150 hover:shadow-red-200/30 hover:border-red-300`
+      return `${baseClasses} bg-gradient-to-br from-red-50 to-red-100/60 border-red-200 text-gray-900 hover:from-red-100 hover:to-red-200 hover:shadow-red-200/30 hover:border-red-300`
     }
   }
 
@@ -378,7 +378,12 @@ export function AvailabilityCalendar() {
               variant="outline" 
               size="sm" 
               className="border-gray-200 hover:bg-gray-50"
-              onClick={() => alert('Mark day unavailable - feature coming soon')}
+              onClick={() => {
+                const confirmAction = confirm('Mark entire day as unavailable?')
+                if (!confirmAction || !provider) return
+                // Minimal UX: just notify; full override UI is managed in DateOverrides component
+                alert('Go to Availability > Date Overrides to configure special dates. (MVP action)')
+              }}
             >
               Mark Unavailable
             </Button>
@@ -488,26 +493,22 @@ export function AvailabilityCalendar() {
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2 bg-gradient-to-r from-white to-gray-50 rounded-xl p-1.5 shadow-sm border border-gray-200">
             <Button
-              variant={viewMode === VIEW_MODES.MONTHLY ? 'primary' : 'ghost'}
+              variant={'ghost'}
               size="sm"
               onClick={() => setViewMode(VIEW_MODES.MONTHLY)}
               className={`h-9 px-4 transition-all duration-200 ${
-                viewMode === VIEW_MODES.MONTHLY 
-                  ? 'bg-gradient-to-r from-primary to-blue-600 shadow-md shadow-blue-200/40' 
-                  : 'hover:bg-white hover:shadow-sm'
+                'hover:bg-white hover:shadow-sm'
               }`}
             >
               <LayoutGrid className="h-4 w-4 mr-1.5" />
               Monthly
             </Button>
             <Button
-              variant={viewMode === VIEW_MODES.WEEKLY ? 'primary' : 'ghost'}
+              variant={'primary'}
               size="sm"
               onClick={() => setViewMode(VIEW_MODES.WEEKLY)}
               className={`h-9 px-4 transition-all duration-200 ${
-                viewMode === VIEW_MODES.WEEKLY 
-                  ? 'bg-gradient-to-r from-primary to-blue-600 shadow-md shadow-blue-200/40' 
-                  : 'hover:bg-white hover:shadow-sm'
+                'bg-gradient-to-r from-primary to-blue-600 shadow-md shadow-blue-200/40'
               }`}
             >
               <Grid className="h-4 w-4 mr-1.5" />
@@ -534,26 +535,22 @@ export function AvailabilityCalendar() {
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2 bg-gradient-to-r from-white to-gray-50 rounded-xl p-1.5 shadow-sm border border-gray-200">
           <Button
-            variant={viewMode === VIEW_MODES.MONTHLY ? 'primary' : 'ghost'}
+            variant={'primary'}
             size="sm"
             onClick={() => setViewMode(VIEW_MODES.MONTHLY)}
             className={`h-9 px-4 transition-all duration-200 ${
-              viewMode === VIEW_MODES.MONTHLY 
-                ? 'bg-gradient-to-r from-primary to-blue-600 shadow-md shadow-blue-200/40' 
-                : 'hover:bg-white hover:shadow-sm'
+              'bg-gradient-to-r from-primary to-blue-600 shadow-md shadow-blue-200/40'
             }`}
           >
             <LayoutGrid className="h-4 w-4 mr-1.5" />
             Monthly
           </Button>
           <Button
-            variant={viewMode === VIEW_MODES.WEEKLY ? 'primary' : 'ghost'}
+            variant={'ghost'}
             size="sm"
             onClick={() => setViewMode(VIEW_MODES.WEEKLY)}
             className={`h-9 px-4 transition-all duration-200 ${
-              viewMode === VIEW_MODES.WEEKLY 
-                ? 'bg-gradient-to-r from-primary to-blue-600 shadow-md shadow-blue-200/40' 
-                : 'hover:bg-white hover:shadow-sm'
+              'hover:bg-white hover:shadow-sm'
             }`}
           >
             <Grid className="h-4 w-4 mr-1.5" />

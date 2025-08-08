@@ -129,31 +129,55 @@ export default function Home() {
 
   return (
     <div className="flex flex-col">
-      {/* Hero Section */}
-      <section className="relative py-20 lg:py-32 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl lg:text-6xl font-bold font-heading mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            Book Services,
-            <br />
-            Save Time
-          </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Connect with trusted service providers in your area. From haircuts to home repairs, 
-            book appointments seamlessly and manage your schedule with ease.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" asChild className="relative">
-              <Link href="/login">
-                Get Started
-                <span className="absolute inset-0 bg-white/20 rounded-lg opacity-0 hover:opacity-100 transition-opacity" />
-              </Link>
-            </Button>
-            <Button variant="outline" size="lg" asChild className="relative">
-              <Link href="/login">
-                Sign In
-                <span className="absolute inset-0 bg-primary/5 rounded-lg opacity-0 hover:opacity-100 transition-opacity" />
-              </Link>
-            </Button>
+      {/* New Hero Section */}
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute -top-24 -left-24 h-[28rem] w-[36rem] rotate-12 bg-gradient-to-br from-primary/30 via-blue-400/20 to-transparent blur-3xl" />
+          <div className="absolute top-1/2 -right-24 h-[28rem] w-[36rem] -rotate-12 bg-gradient-to-br from-secondary/30 via-emerald-400/20 to-transparent blur-3xl" />
+        </div>
+        <div className="container mx-auto px-4 py-20 lg:py-28">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                Faster bookings, happier days
+              </div>
+              <h1 className="text-4xl lg:text-6xl font-bold font-heading tracking-tight mb-6">
+                A better way to book services
+              </h1>
+              <p className="text-lg text-muted-foreground mb-8 max-w-xl">
+                Discover providers, find the perfect time, and confirm in seconds. TimeBooking keeps your schedule flowing.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button size="lg" asChild>
+                  <Link href="/register">Get started</Link>
+                </Button>
+                <Button variant="outline" size="lg" asChild>
+                  <Link href="/login">Sign in</Link>
+                </Button>
+              </div>
+              <div className="mt-8 grid grid-cols-3 gap-6 max-w-md">
+                <div>
+                  <div className="text-2xl font-bold">2k+</div>
+                  <div className="text-sm text-muted-foreground">Bookings</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">350+</div>
+                  <div className="text-sm text-muted-foreground">Providers</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">4.8★</div>
+                  <div className="text-sm text-muted-foreground">Avg rating</div>
+                </div>
+              </div>
+            </div>
+            <div className="relative">
+              <div className="rounded-2xl border border-border bg-white shadow-xl p-4 lg:p-6">
+                <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center text-muted-foreground">
+                  Preview your schedule here
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -162,7 +186,7 @@ export default function Home() {
       <section className="py-20 bg-background">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold font-heading mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold font-heading mb-4 tracking-tight">
               Why Choose TimeBooking?
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
