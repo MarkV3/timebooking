@@ -10,6 +10,9 @@ class BookingBase(BaseModel):
 class BookingCreate(BookingBase):
     pass
 
+class BookingCancel(BaseModel):
+    reason: Optional[str] = None
+
 class BookingUpdate(BaseModel):
     status: Optional[str] = None  # confirmed, cancelled, completed
     notes: Optional[str] = None

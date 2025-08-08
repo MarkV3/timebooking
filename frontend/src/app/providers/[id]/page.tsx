@@ -38,6 +38,7 @@ export default function ProviderDetailPage() {
   const [loading, setLoading] = useState(true)
   const [bookingLoading, setBookingLoading] = useState(false)
   const [error, setError] = useState('')
+  const [notes, setNotes] = useState('')
   const [showConfirmationModal, setShowConfirmationModal] = useState(false)
   const [confirmationData, setConfirmationData] = useState<BookingConfirmationData | null>(null)
   
@@ -161,7 +162,7 @@ export default function ProviderDetailPage() {
       const booking = await apiService.createBooking({
         service_id: selectedService.id,
         time_slot_id: selectedSlot.id,
-        notes: ''
+        notes: notes
       })
       
       // Prepare confirmation data for the modal
@@ -434,13 +435,23 @@ export default function ProviderDetailPage() {
                               </div>
                             </div>
 
+                            <div>
+                              <label htmlFor="booking-notes" className="text-sm font-medium">Notes (optional)</label>
+                              <textarea
+                                id="booking-notes"
+                                value={notes}
+                                onChange={(e) => setNotes(e.target.value)}
+                                placeholder="e.g., specific requests, allergies..."
+                                className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+                                rows={3}
+                              />
+                            </div>
+
                             {error && (
                               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
                                 {error}
                               </div>
                             )}
-
-
 
                             <div className="flex gap-3">
                               <Button

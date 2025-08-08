@@ -5,7 +5,13 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.auth import get_current_active_user
 from app.models.database import User, ServiceProvider, Service, TimeSlot, Booking
-from app.schemas.booking import BookingCreate, BookingResponse, TimeSlotResponse, BookingWithDetailsResponse
+from app.schemas.booking import (
+    BookingCreate, 
+    BookingResponse, 
+    TimeSlotResponse, 
+    BookingWithDetailsResponse,
+    BookingCancel
+)
 from app.schemas.service import ServiceResponse
 from app.services.time_slots import (
     get_provider_time_slots as _svc_get_provider_slots,
@@ -256,6 +262,7 @@ async def cleanup_orphaned_time_slots(
 @router.post("/{booking_id}/cancel", response_model=BookingResponse)
 async def cancel_booking(
     booking_id: str,
+    cancel_data: BookingCancel,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
@@ -301,6 +308,7 @@ async def cancel_booking(
 
     # Update booking status and free time slot
     booking.status = "cancelled"
+    booking.cancellation_reason = cancel_data.reason
     time_slot = db.query(TimeSlot).filter(TimeSlot.id == booking.time_slot_id).first()
     if time_slot:
         time_slot.is_booked = False

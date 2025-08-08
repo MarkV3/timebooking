@@ -9,14 +9,30 @@ import { NewTimeSlotManager } from "./components/NewTimeSlotManager"
 import { apiService } from "@/lib/api"
 import { useAuth } from "@/contexts/AuthContext"
 import { parseDateTime, formatTimeSlot, formatDisplayDate } from "@/lib/utils"
+import { ServiceProvider } from "@/lib/api"
 
 export default function ProviderDashboard() {
   const [activeTab, setActiveTab] = useState("availability")
   const [bookings, setBookings] = useState<any[]>([])
   const [services, setServices] = useState<any[]>([])
+  const [provider, setProvider] = useState<ServiceProvider | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const { user } = useAuth()
+
+  useEffect(() => {
+    if (user?.id) {
+      const fetchProvider = async () => {
+        try {
+          const providerData = await apiService.getProviderByUserId(user.id);
+          setProvider(providerData);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Failed to load provider data');
+        }
+      };
+      fetchProvider();
+    }
+  }, [user]);
 
   useEffect(() => {
     if (activeTab === 'bookings') {
@@ -105,7 +121,7 @@ export default function ProviderDashboard() {
               </TabsList>
 
               <TabsContent value="time-slots">
-                <NewTimeSlotManager />
+                {provider && <NewTimeSlotManager providerId={provider.id} />}
               </TabsContent>
 
               <TabsContent value="availability">

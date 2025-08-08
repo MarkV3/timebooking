@@ -7,11 +7,14 @@ import { Button } from "@/components/ui"
 import Link from "next/link"
 import { apiService, type Booking } from "@/lib/api"
 import { parseDateTime, formatDisplayDate, formatTimeSlot } from "@/lib/utils"
+import { BookingCancellationModal } from "@/components/ui/BookingCancellationModal"
 
 export default function MyBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
 
   useEffect(() => {
     const loadBookings = async () => {
@@ -84,11 +87,20 @@ export default function MyBookingsPage() {
     return parseDateTime(startTime) > new Date()
   }
 
-  const handleCancel = async (bookingId: string) => {
+  const openCancelModal = (booking: Booking) => {
+    setSelectedBooking(booking)
+    setIsModalOpen(true)
+  }
+
+  const handleConfirmCancel = async (reason: string) => {
+    if (!selectedBooking) return
+
     try {
       setError("")
-      const updated = await apiService.cancelBooking(bookingId)
+      const updated = await apiService.cancelBooking(selectedBooking.id, reason)
       setBookings(prev => prev.map(b => (b.id === updated.id ? updated : b)))
+      setIsModalOpen(false)
+      setSelectedBooking(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to cancel booking")
     }
@@ -214,7 +226,7 @@ export default function MyBookingsPage() {
                                 variant="outline" 
                                 size="sm" 
                                 className="w-full lg:w-auto text-red-600 hover:text-red-700"
-                                onClick={() => handleCancel(booking.id)}
+                                onClick={() => openCancelModal(booking)}
                               >
                                 Cancel Booking
                               </Button>
@@ -229,6 +241,17 @@ export default function MyBookingsPage() {
             </div>
           )}
         </div>
+
+        {selectedBooking && (
+          <BookingCancellationModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onConfirm={handleConfirmCancel}
+            bookingId={selectedBooking.id}
+            serviceName={selectedBooking.service_name}
+            appointmentDate={formatAppointmentDateTime(selectedBooking.appointment_start_time, selectedBooking.appointment_end_time).date}
+          />
+        )}
       </div>
     </ProtectedRoute>
   )

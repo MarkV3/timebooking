@@ -1,0 +1,12 @@
+For this project firstly I would like you to create new branch from dev, and call it "feature/gemini" and start working from there.
+
+There are certain changes I want you to make.
+Firstly I want you to make fix the calendar schedule creation from provider side. Because right now when I change something in their dashboard it seems that changes are not being saved at all, I just play with time, but nothing is being saved. When I create some changes it should be saved in database somehow so that later I can see that something have been changed. 
+
+Second thing is that I want to add cancelation feature. Meaning that both customer and service providers can cancel booking one day before the actual service should happen.
+
+Next is ability to add comments when booking some time from customer side. The cancelation should also have option to leave a comment. Both of them are optional.
+
+For now that is it. I don't want you to add too much of UI elements, mostly change what I have described just so that it works. Also please do not break anything that is not needed.
+
+If you will use any terminal command please use "conda activate timebooking" beforehand

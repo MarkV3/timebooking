@@ -134,6 +134,7 @@ class Booking(Base):
     time_slot_id = Column(String, ForeignKey("time_slots.id"), nullable=False)
     status = Column(String, default="confirmed")  # confirmed, cancelled, completed
     notes = Column(Text)
+    cancellation_reason = Column(Text)
     total_price = Column(Float, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

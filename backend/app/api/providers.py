@@ -68,6 +68,18 @@ async def get_my_provider_profile(
     
     return provider
 
+@router.get("/user/{user_id}", response_model=ServiceProviderResponse)
+async def get_service_provider_by_user_id(user_id: str, db: Session = Depends(get_db)):
+    """Get service provider by user ID"""
+    provider = db.query(ServiceProvider).filter(ServiceProvider.user_id == user_id).first()
+    if not provider:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Service provider not found for this user"
+        )
+    
+    return provider
+
 @router.put("/me", response_model=ServiceProviderResponse)
 async def update_my_provider_profile(
     provider_update: ServiceProviderUpdate,
