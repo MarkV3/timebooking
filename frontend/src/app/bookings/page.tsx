@@ -32,22 +32,47 @@ export default function MyBookingsPage() {
   }, [])
 
   const formatAppointmentDateTime = (startTime: string, endTime: string) => {
-    const start = parseDateTime(startTime)
-    const end = parseDateTime(endTime)
-    const datePart = formatDisplayDate(start, 'full')
-    const timePart = `${formatTimeSlot(start)} - ${formatTimeSlot(end)}`
-    return {
-      date: datePart,
-      time: timePart
+    // Add safety checks for invalid time values
+    if (!startTime || !endTime) {
+      return {
+        date: 'Invalid date',
+        time: 'Invalid time'
+      }
+    }
+    
+    try {
+      const start = parseDateTime(startTime)
+      const end = parseDateTime(endTime)
+      const datePart = formatDisplayDate(start, 'full')
+      const timePart = `${formatTimeSlot(start)} - ${formatTimeSlot(end)}`
+      return {
+        date: datePart,
+        time: timePart
+      }
+    } catch (error) {
+      console.error('Error formatting appointment date/time:', error, { startTime, endTime })
+      return {
+        date: 'Invalid date',
+        time: 'Invalid time'
+      }
     }
   }
 
   const formatBookingDate = (dateTime: string) => {
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric"
-    }).format(parseDateTime(dateTime))
+    if (!dateTime) {
+      return 'Invalid date'
+    }
+    
+    try {
+      return new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      }).format(parseDateTime(dateTime))
+    } catch (error) {
+      console.error('Error formatting booking date:', error, { dateTime })
+      return 'Invalid date'
+    }
   }
 
   const formatPrice = (price: number) => {
@@ -84,7 +109,16 @@ export default function MyBookingsPage() {
   }
 
   const isUpcoming = (startTime: string) => {
-    return parseDateTime(startTime) > new Date()
+    if (!startTime) {
+      return false
+    }
+    
+    try {
+      return parseDateTime(startTime) > new Date()
+    } catch (error) {
+      console.error('Error checking if appointment is upcoming:', error, { startTime })
+      return false
+    }
   }
 
   const openCancelModal = (booking: Booking) => {
@@ -139,7 +173,14 @@ export default function MyBookingsPage() {
           ) : (
             <div className="space-y-6">
               {bookings
-                .sort((a, b) => parseDateTime(b.created_at).getTime() - parseDateTime(a.created_at).getTime())
+                .sort((a, b) => {
+                  try {
+                    return parseDateTime(b.created_at).getTime() - parseDateTime(a.created_at).getTime()
+                  } catch (error) {
+                    console.error('Error sorting bookings by date:', error)
+                    return 0
+                  }
+                })
                 .map((booking) => {
                 const appointmentDateTime = formatAppointmentDateTime(
                   booking.appointment_start_time,
@@ -248,7 +289,7 @@ export default function MyBookingsPage() {
             onClose={() => setIsModalOpen(false)}
             onConfirm={handleConfirmCancel}
             bookingId={selectedBooking.id}
-            serviceName={selectedBooking.service_name}
+            serviceName={selectedBooking.service_name || 'Unknown Service'}
             appointmentDate={formatAppointmentDateTime(selectedBooking.appointment_start_time, selectedBooking.appointment_end_time).date}
           />
         )}

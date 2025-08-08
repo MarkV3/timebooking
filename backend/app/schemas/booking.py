@@ -23,6 +23,7 @@ class BookingResponse(BookingBase):
     status: str
     total_price: float
     created_at: datetime
+    cancellation_reason: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -50,6 +51,7 @@ class BookingWithDetailsResponse(BookingResponse):
     appointment_end_time: datetime
     customer_name: Optional[str] = None  # Only present for service providers
     customer_email: Optional[str] = None  # Only present for service providers
+    cancellation_reason: Optional[str] = None
     
     class Config:
         from_attributes = True

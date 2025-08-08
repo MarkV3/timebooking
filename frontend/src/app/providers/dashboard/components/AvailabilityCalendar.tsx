@@ -474,6 +474,20 @@ export function AvailabilityCalendar() {
                           )}
                         </div>
                       )}
+                      {/* Customer Notes/Comments */}
+                      {slot.isBooked && getBookingForSlot(slot.id)?.booking?.notes && (
+                        <div className="pl-6 mt-2 pt-2 border-t-2 border-red-100 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 bg-amber-100 rounded flex items-center justify-center">
+                              <span className="text-amber-600 text-xs font-bold">💬</span>
+                            </div>
+                            <span className="text-xs font-medium text-gray-700">Customer Notes</span>
+                          </div>
+                          <p className="text-xs text-gray-600 italic pl-6">
+                            "{getBookingForSlot(slot.id)?.booking?.notes}"
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

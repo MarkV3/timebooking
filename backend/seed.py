@@ -248,6 +248,11 @@ def save_credentials_to_file():
         print(f"❌ Error saving credentials: {e}")
 
 if __name__ == "__main__":
+    import os
+    db_file = "timebooking.db"
+    if os.path.exists(db_file):
+        os.remove(db_file)
+    from app.core.database import create_tables
     create_tables()
     create_test_data()
     save_credentials_to_file()

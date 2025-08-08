@@ -92,7 +92,8 @@ async def create_booking(
         time_slot_id=booking.time_slot_id,
         notes=booking.notes,
         total_price=service.price,
-        status="confirmed"
+        status="confirmed",
+        cancellation_reason=None
     )
     
     # Mark time slot as booked
@@ -131,6 +132,10 @@ async def get_my_bookings(
             provider = db.query(ServiceProvider).filter(ServiceProvider.id == service.provider_id).first()
             time_slot = db.query(TimeSlot).filter(TimeSlot.id == booking.time_slot_id).first()
             
+            # Skip bookings with missing critical data to prevent errors
+            if not service or not provider or not time_slot:
+                continue
+                
             detailed_bookings.append(BookingWithDetailsResponse(
                 id=booking.id,
                 customer_id=booking.customer_id,
@@ -140,6 +145,7 @@ async def get_my_bookings(
                 notes=booking.notes,
                 total_price=booking.total_price,
                 created_at=booking.created_at,
+                cancellation_reason=booking.cancellation_reason,
                 service_name=service.name,
                 service_description=service.description,
                 provider_name=provider.business_name,
@@ -178,6 +184,10 @@ async def get_my_bookings(
             customer = db.query(User).filter(User.id == booking.customer_id).first()
             time_slot = db.query(TimeSlot).filter(TimeSlot.id == booking.time_slot_id).first()
             
+            # Skip bookings with missing critical data to prevent errors
+            if not service or not customer or not time_slot:
+                continue
+                
             detailed_bookings.append(BookingWithDetailsResponse(
                 id=booking.id,
                 customer_id=booking.customer_id,
@@ -187,6 +197,7 @@ async def get_my_bookings(
                 notes=booking.notes,
                 total_price=booking.total_price,
                 created_at=booking.created_at,
+                cancellation_reason=booking.cancellation_reason,
                 service_name=service.name,
                 service_description=service.description,
                 provider_name=provider.business_name,

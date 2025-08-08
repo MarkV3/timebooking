@@ -226,8 +226,11 @@ async def get_my_provider_schedule(
     for slot in all_slots:
         booking_info = None
         if slot.is_booked:
-            # Query the booking separately to ensure it's loaded
-            booking = db.query(Booking).filter(Booking.time_slot_id == slot.id).first()
+            # Query the current active booking (not cancelled) for this time slot
+            booking = db.query(Booking).filter(
+                Booking.time_slot_id == slot.id,
+                Booking.status != "cancelled"
+            ).first()
             if booking:
                 # Get customer and service information
                 customer = db.query(User).filter(User.id == booking.customer_id).first()
