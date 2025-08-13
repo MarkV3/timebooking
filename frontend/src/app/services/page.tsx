@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui'
 import { Input } from '@/components/ui'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui'
+import { Select } from '@/components/ui'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { apiService, type ServiceProvider } from '@/lib/api'
 import { ProviderCard } from '@/components/ui/ProviderCard'
@@ -83,24 +83,26 @@ export default function ServicesPage() {
                 />
               </div>
               <div className="flex gap-4 w-full md:w-auto">
-                <Select value={city} onValueChange={setCity}>
-                  <SelectTrigger className="h-12">
-                    <SelectValue placeholder="City" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="New York">New York</SelectItem>
-                    <SelectItem value="San Francisco">San Francisco</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={state} onValueChange={setState}>
-                  <SelectTrigger className="h-12">
-                    <SelectValue placeholder="State" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="NY">NY</SelectItem>
-                    <SelectItem value="CA">CA</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Select
+                  value={city}
+                  onValueChange={setCity}
+                  options={[
+                    { value: 'New York', label: 'New York' },
+                    { value: 'San Francisco', label: 'San Francisco' },
+                  ]}
+                  placeholder="City"
+                  className="h-12"
+                />
+                <Select
+                  value={state}
+                  onValueChange={setState}
+                  options={[
+                    { value: 'NY', label: 'NY' },
+                    { value: 'CA', label: 'CA' },
+                  ]}
+                  placeholder="State"
+                  className="h-12"
+                />
               </div>
               <Button type="submit" disabled={searching} className="h-12 w-full md:w-auto">
                 {searching ? 'Searching...' : 'Search'}

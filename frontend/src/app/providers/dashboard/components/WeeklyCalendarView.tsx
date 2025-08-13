@@ -68,11 +68,11 @@ function BookingDetailModal({ slot, onClose }: BookingDetailModalProps) {
         }
       }}
     >
-      <div className="bg-white rounded-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto animate-slide-in shadow-2xl">
+      <div className="bg-card rounded-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto animate-slide-in shadow-2xl">
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">Booking Details</h2>
+            <h2 className="text-xl font-semibold text-foreground">Booking Details</h2>
             <Button
               variant="ghost"
               size="sm"
@@ -86,26 +86,26 @@ function BookingDetailModal({ slot, onClose }: BookingDetailModalProps) {
           {/* Booking Information */}
           <div className="space-y-4">
             {/* Time */}
-            <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-              <Clock className="h-5 w-5 text-blue-600" />
+            <div className="flex items-center gap-3 p-3 bg-primary/10 rounded-lg">
+              <Clock className="h-5 w-5 text-primary" />
               <div>
-                <div className="font-medium text-gray-900">
+                <div className="font-medium text-foreground">
                   {formatTimeSlot(startTime)} - {formatTimeSlot(endTime)}
                 </div>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-muted-foreground">
                   {formatDisplayDate(startTime, 'full')}
                 </div>
               </div>
             </div>
 
             {/* Customer */}
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <User className="h-5 w-5 text-gray-600" />
+            <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+              <User className="h-5 w-5 text-muted-foreground" />
               <div>
-                <div className="font-medium text-gray-900">
+                <div className="font-medium text-foreground">
                   {slot.booking.customer_name || 'Unknown Customer'}
                 </div>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-muted-foreground">
                   {slot.booking.customer_email || 'No email provided'}
                 </div>
               </div>
@@ -113,11 +113,11 @@ function BookingDetailModal({ slot, onClose }: BookingDetailModalProps) {
 
             {/* Service */}
             <div className="p-3 bg-green-50 rounded-lg">
-              <div className="font-medium text-gray-900 mb-1">
+              <div className="font-medium text-foreground mb-1">
                 {slot.booking.service_name || 'Unknown Service'}
               </div>
               {slot.booking.total_price && (
-                <div className="text-sm text-gray-600 mb-2">
+                <div className="text-sm text-muted-foreground mb-2">
                   ${slot.booking.total_price.toFixed(2)}
                 </div>
               )}
@@ -137,10 +137,10 @@ function BookingDetailModal({ slot, onClose }: BookingDetailModalProps) {
 
             {/* Customer Notes/Comments */}
             {slot.booking.notes && (
-              <div className="p-3 bg-amber-50 rounded-lg">
+            <div className="p-3 bg-amber-50 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <MessageSquare className="h-4 w-4 text-amber-600" />
-                  <span className="font-medium text-gray-900">Customer Notes</span>
+                  <span className="font-medium text-foreground">Customer Notes</span>
                 </div>
                 <p className="text-sm text-gray-700 italic">
                   "{slot.booking.notes}"
@@ -150,7 +150,7 @@ function BookingDetailModal({ slot, onClose }: BookingDetailModalProps) {
           </div>
 
           {/* Close Button */}
-          <div className="mt-6 flex justify-end">
+            <div className="mt-6 flex justify-end">
             <Button onClick={onClose} variant="outline">
               Close
             </Button>
@@ -282,7 +282,7 @@ export function WeeklyCalendarView({ scheduleSlots, currentDate, onDateChange, o
 
   return (
     <>
-    <Card className="shadow-lg border-0 bg-white">
+    <Card className="shadow-lg border-0 bg-card">
       <CardContent className="p-6">
         <div className="space-y-6">
           {/* Header with Navigation */}
@@ -292,14 +292,14 @@ export function WeeklyCalendarView({ scheduleSlots, currentDate, onDateChange, o
                 variant="outline" 
                 size="sm" 
                 onClick={() => navigateWeek('prev')}
-                className="h-9 w-9 p-0 border-gray-200 hover:bg-gray-50"
+                className="h-9 w-9 p-0 border-border hover:bg-muted"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               
               <div className="text-center">
                 <div className="flex items-center justify-center gap-2 min-h-[32px]">
-                  <span className="text-2xl font-light text-gray-800 leading-tight">
+                  <span className="text-2xl font-light text-foreground leading-tight">
                     {weekStart.toLocaleDateString('en-US', { month: 'short' })} {weekStart.getDate()} - {' '}
                     {weekStart.getMonth() !== new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000).getMonth() 
                       ? new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short' }) + ' '
@@ -307,7 +307,7 @@ export function WeeklyCalendarView({ scheduleSlots, currentDate, onDateChange, o
                     }
                     {new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000).getDate()}
                   </span>
-                  <span className="text-2xl font-light text-gray-600 leading-tight">
+                  <span className="text-2xl font-light text-muted-foreground leading-tight">
                     {weekStart.getFullYear()}
                   </span>
                 </div>
@@ -318,7 +318,7 @@ export function WeeklyCalendarView({ scheduleSlots, currentDate, onDateChange, o
                 variant="outline" 
                 size="sm" 
                 onClick={() => navigateWeek('next')}
-                className="h-9 w-9 p-0 border-gray-200 hover:bg-gray-50"
+                className="h-9 w-9 p-0 border-border hover:bg-muted"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -329,7 +329,7 @@ export function WeeklyCalendarView({ scheduleSlots, currentDate, onDateChange, o
                 variant="outline" 
                 size="sm" 
                 onClick={goToToday}
-                className="border-gray-200 hover:bg-gray-50"
+                className="border-border hover:bg-muted"
               >
                 Today
               </Button>
@@ -337,7 +337,7 @@ export function WeeklyCalendarView({ scheduleSlots, currentDate, onDateChange, o
                 variant="outline" 
                 size="sm" 
                 onClick={onRefresh}
-                className="border-gray-200 hover:bg-gray-50"
+                className="border-border hover:bg-muted"
               >
                 Refresh
               </Button>
@@ -345,7 +345,7 @@ export function WeeklyCalendarView({ scheduleSlots, currentDate, onDateChange, o
           </div>
 
           {/* Calendar Grid */}
-          <div className="relative bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="relative bg-card rounded-xl border border-border overflow-hidden">
             {/* Scrollable Time Grid */}
             <div 
               ref={scrollContainerRef}
@@ -353,22 +353,22 @@ export function WeeklyCalendarView({ scheduleSlots, currentDate, onDateChange, o
               style={{ scrollbarWidth: 'thin' }}
             >
               {/* Day Headers - moved inside scrollable container */}
-              <div className="grid grid-cols-8 bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
-                <div className="p-3 text-center font-medium text-gray-600 text-sm border-r border-gray-200">
+              <div className="grid grid-cols-8 bg-muted border-b border-border sticky top-0 z-10">
+                <div className="p-3 text-center font-medium text-muted-foreground text-sm border-r border-border">
                   Time
                 </div>
                 {weekDays.map((day) => (
                   <div 
                     key={day.date.toISOString()} 
-                    className={`p-3 text-center border-r border-gray-200 transition-colors ${
+                    className={`p-3 text-center border-r border-border transition-colors ${
                       day.isToday 
-                        ? 'bg-blue-50 text-blue-900 font-semibold' 
-                        : 'text-gray-700'
+                        ? 'bg-primary/10 text-primary font-semibold' 
+                        : 'text-foreground'
                     }`}
                   >
                     <div className="text-sm font-medium">{day.dayName}</div>
                     <div className={`text-lg font-bold mt-1 ${
-                      day.isToday ? 'text-blue-600' : 'text-gray-900'
+                      day.isToday ? 'text-primary' : 'text-foreground'
                     }`}>
                       {day.dayNumber}
                     </div>
@@ -400,14 +400,14 @@ export function WeeklyCalendarView({ scheduleSlots, currentDate, onDateChange, o
               )}
 
               {/* Time Rows */}
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y">
                 {timeSlots.map((timeSlot) => (
                   <div key={timeSlot.hour} className="grid grid-cols-8 min-h-[60px]">
                     {/* Time Label */}
-                    <div className={`p-3 text-right text-sm border-r border-gray-200 flex items-start justify-end ${
+                    <div className={`p-3 text-right text-sm border-r border-border flex items-start justify-end ${
                       timeSlot.isCurrentHour 
                         ? 'bg-red-50 text-red-700 font-medium' 
-                        : 'text-gray-500'
+                        : 'text-muted-foreground'
                     }`}>
                       <span className="mt-1">{timeSlot.timeLabel}</span>
                     </div>
@@ -419,12 +419,12 @@ export function WeeklyCalendarView({ scheduleSlots, currentDate, onDateChange, o
                       return (
                         <div 
                           key={`${day.date.toISOString()}-${timeSlot.hour}`}
-                          className={`border-r border-gray-200 p-1 min-h-[60px] relative ${
+                          className={`border-r border-border p-1 min-h-[60px] relative ${
                             day.isToday 
-                              ? 'bg-blue-50' 
+                              ? 'bg-primary/10' 
                               : timeSlot.hour % 2 === 0 
-                                ? 'bg-gray-50' 
-                                : 'bg-white'
+                                ? 'bg-muted' 
+                                : 'bg-card'
                           }`}
                         >
                           {hourSlots.map((slot) => {
@@ -488,18 +488,18 @@ export function WeeklyCalendarView({ scheduleSlots, currentDate, onDateChange, o
             <div className="flex justify-center gap-6 text-sm">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded bg-green-100 border border-green-200" />
-                <span className="text-gray-700">Available</span>
+                <span className="text-foreground">Available</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded bg-red-100 border border-red-200" />
-                <span className="text-gray-700">Booked</span>
+                <span className="text-foreground">Booked</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-0.5 bg-red-500" />
-                <span className="text-gray-700">Current Time</span>
+                <span className="text-foreground">Current Time</span>
               </div>
             </div>
-            <div className="text-xs text-gray-500 flex items-center gap-1">
+            <div className="text-xs text-muted-foreground flex items-center gap-1">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>

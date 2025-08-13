@@ -99,7 +99,7 @@ export default function ProviderDashboard() {
     <ProtectedRoute allowedUserTypes={['service_provider']}>
       <div className="min-h-screen bg-background">
         {/* Header */}
-        <div className="border-b bg-white/80 backdrop-blur">
+        <div className="border-b bg-background/80 backdrop-blur">
           <div className="container mx-auto px-4 py-4">
             <div>
               <h1 className="text-2xl font-bold text-foreground tracking-tight">Provider Dashboard</h1>

@@ -271,8 +271,8 @@ export function EnhancedCalendar({
     })
 
     return (
-      <Card className={`w-full ${className} shadow-lg border-0 bg-white`}>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 bg-gray-50 border-b">
+      <Card className={`w-full ${className} shadow-lg border-0 bg-card`}>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 bg-muted border-b">
           <div className="flex items-center gap-4">
             <Button
               variant="outline"
@@ -283,7 +283,7 @@ export function EnhancedCalendar({
               <ChevronLeft className="h-4 w-4" />
             </Button>
             
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-bold text-foreground">
               {currentDate.getFullYear()}
             </h2>
             
@@ -325,7 +325,7 @@ export function EnhancedCalendar({
             {showAddButton && (
               <Button 
                 onClick={onAddEvent}
-                className="bg-gray-900 hover:bg-gray-800 text-white"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
                 size="sm"
               >
                 <Plus className="h-4 w-4 mr-1" />
@@ -340,14 +340,14 @@ export function EnhancedCalendar({
             {months.map((month, index) => (
               <div
                 key={index}
-                className="p-4 rounded-lg border border-gray-200 hover:shadow-md transition-all cursor-pointer bg-white"
+                className="p-4 rounded-lg border border-border hover:shadow-md transition-all cursor-pointer bg-card"
                 onClick={() => {
                   setCurrentDate(month.date)
                   setView('month')
                 }}
               >
                 <div className="text-center">
-                  <div className="font-semibold text-gray-900 mb-2">
+                  <div className="font-semibold text-foreground mb-2">
                     {month.date.toLocaleDateString('en-US', { month: 'long' })}
                   </div>
                   <div className="flex justify-center gap-1 flex-wrap">
@@ -358,12 +358,12 @@ export function EnhancedCalendar({
                       />
                     ))}
                     {month.events.length > 5 && (
-                      <div className="text-xs text-gray-500 ml-1">
+                      <div className="text-xs text-muted-foreground ml-1">
                         +{month.events.length - 5}
                       </div>
                     )}
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-muted-foreground mt-1">
                     {month.events.length} events
                   </div>
                 </div>
@@ -380,8 +380,8 @@ export function EnhancedCalendar({
   const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
   return (
-    <Card className={`w-full ${className} shadow-lg border-0 bg-white`}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 bg-gray-50/60 backdrop-blur border-b">
+    <Card className={`w-full ${className} shadow-lg border-0 bg-card`}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 bg-muted/60 backdrop-blur border-b">
         <div className="flex items-center gap-4">
           <Button
             variant="outline"
@@ -392,7 +392,7 @@ export function EnhancedCalendar({
             <ChevronLeft className="h-4 w-4" />
           </Button>
           
-          <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
+          <h2 className="text-2xl font-bold text-foreground tracking-tight">
             {formatDate(currentDate, 'month')}
           </h2>
           
@@ -434,7 +434,7 @@ export function EnhancedCalendar({
           {showAddButton && (
             <Button 
               onClick={onAddEvent}
-              className="bg-gray-900 hover:bg-gray-800 text-white"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
               size="sm"
             >
               <Plus className="h-4 w-4 mr-1" />
@@ -450,7 +450,7 @@ export function EnhancedCalendar({
           <div className="grid grid-cols-7 gap-1">
             {/* Day headers */}
             {dayNames.map((day) => (
-              <div key={day} className="text-center text-sm font-semibold text-gray-600 p-4 bg-gray-50 rounded-lg">
+              <div key={day} className="text-center text-sm font-semibold text-muted-foreground p-4 bg-muted rounded-lg">
                 {day}
               </div>
             ))}
@@ -465,16 +465,16 @@ export function EnhancedCalendar({
                   key={index}
                   onClick={() => handleDayClick(day)}
                   className={`
-                    min-h-[120px] p-3 border border-gray-200 rounded-xl transition-all cursor-pointer animate-fade-in
-                    ${day.isCurrentMonth ? 'hover:shadow-lg hover:border-blue-300 bg-white' : 'opacity-40 bg-gray-50'}
-                    ${day.isToday ? 'ring-2 ring-blue-500 bg-blue-50' : ''}
-                    ${selectedDay?.toDateString() === day.date.toDateString() ? 'bg-blue-100 border-blue-400' : ''}
-                    ${day.isWeekend && day.isCurrentMonth ? 'bg-gray-50' : ''}
+                    min-h-[120px] p-3 border border-border rounded-xl transition-all cursor-pointer animate-fade-in
+                    ${day.isCurrentMonth ? 'hover:shadow-lg hover:border-primary/40 bg-card' : 'opacity-40 bg-muted'}
+                    ${day.isToday ? 'ring-2 ring-primary bg-primary/5' : ''}
+                    ${selectedDay?.toDateString() === day.date.toDateString() ? 'bg-primary/10 border-primary/50' : ''}
+                    ${day.isWeekend && day.isCurrentMonth ? 'bg-muted' : ''}
                   `}
                   style={{ animationDelay: `${index * 10}ms` }}
                 >
                   <div className="flex flex-col h-full">
-                    <div className={`text-sm font-semibold mb-2 ${day.isToday ? 'text-blue-600' : day.isCurrentMonth ? 'text-gray-900' : 'text-gray-400'}`}>
+                    <div className={`text-sm font-semibold mb-2 ${day.isToday ? 'text-primary' : day.isCurrentMonth ? 'text-foreground' : 'text-muted-foreground'}`}>
                       {day.date.getDate()}
                     </div>
                     
@@ -484,7 +484,7 @@ export function EnhancedCalendar({
                           <div className={`text-xs px-2 py-1.5 rounded-md text-center border ${availabilitySummary.bgColor} ${availabilitySummary.color} border-current border-opacity-20`}>
                             <div className="font-medium">{availabilitySummary.text}</div>
                           </div>
-                          <div className="relative w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div className="relative w-full h-2 bg-muted rounded-full overflow-hidden">
                             {(() => {
                               const total = day.events.length || 1
                               const available = day.events.filter(e => e.type === 'available').length
@@ -509,18 +509,18 @@ export function EnhancedCalendar({
           </div>
 
           {/* Legend */}
-          <div className="flex items-center justify-center gap-8 pt-4 border-t border-gray-200">
+          <div className="flex items-center justify-center gap-8 pt-4 border-t border-border">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-green-100 border border-green-200 rounded-full"></div>
-              <span className="text-sm text-gray-600">Available</span>
+              <span className="text-sm text-muted-foreground">Available</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-red-100 border border-red-200 rounded-full"></div>
-              <span className="text-sm text-gray-600">Fully Booked</span>
+              <span className="text-sm text-muted-foreground">Fully Booked</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-blue-100 border border-blue-200 rounded-full"></div>
-              <span className="text-sm text-gray-600">Partially Available</span>
+              <span className="text-sm text-muted-foreground">Partially Available</span>
             </div>
           </div>
         </div>

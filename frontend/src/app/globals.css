@@ -43,8 +43,8 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-heading: 'Calistoga', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Sora', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   
   --radius: 16px;
@@ -52,29 +52,7 @@
   --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #020817;
-    --foreground: #f8fafc;
-    --primary: #3b82f6;
-    --primary-foreground: #f8fafc;
-    --secondary: #10b981;
-    --secondary-foreground: #f8fafc;
-    --accent: #fb923c;
-    --accent-foreground: #020817;
-    --muted: #1e293b;
-    --muted-foreground: #94a3b8;
-    --border: #1e293b;
-    --input: #1e293b;
-    --ring: #3b82f6;
-    --destructive: #ef4444;
-    --destructive-foreground: #f8fafc;
-    --card: #0f172a;
-    --card-foreground: #f8fafc;
-    --popover: #0f172a;
-    --popover-foreground: #f8fafc;
-  }
-}
+/* Force consistent light theme across the app for readability */
 
 body {
   background-color: var(--background);

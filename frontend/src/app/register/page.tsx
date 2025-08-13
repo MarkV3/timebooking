@@ -103,7 +103,7 @@ export default function RegisterPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           {/* Brand side */}
           <div className="hidden lg:block">
-            <div className="rounded-2xl border border-border bg-white/70 backdrop-blur p-8 shadow-sm sticky top-8">
+            <div className="rounded-2xl border border-border bg-card/80 backdrop-blur p-8 shadow-sm sticky top-8">
               <div className="flex items-center gap-3 mb-6">
                 <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-sm">
                   <span className="text-white font-bold">T</span>

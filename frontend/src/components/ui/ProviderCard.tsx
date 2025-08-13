@@ -34,7 +34,7 @@ export function ProviderCard({ provider }: ProviderCardProps) {
               </span>
             </div>
           </div>
-          <Link href={`/providers/${provider.id}`} className="block mt-1 text-lg leading-tight font-medium text-black hover:underline">
+          <Link href={`/providers/${provider.id}`} className="block mt-1 text-lg leading-tight font-medium text-foreground hover:underline">
             {provider.business_name}
           </Link>
           <p className="mt-2 text-muted-foreground line-clamp-3">{provider.description}</p>
