@@ -80,7 +80,7 @@ const slotDurationOptions = [
   { value: "60", label: "60 min" }
 ]
 
-export function NewTimeSlotManager() {
+export function NewTimeSlotManager({ providerId }: { providerId: string }) {
   const { user } = useAuth()
   
   // State for recurring schedule
@@ -111,10 +111,10 @@ export function NewTimeSlotManager() {
 
   // Load data on component mount
   useEffect(() => {
-    if (user?.id) {
+    if (providerId) {
       loadScheduleData()
     }
-  }, [user?.id])
+  }, [providerId])
 
   // Track changes to update preview immediately
   useEffect(() => {
@@ -127,7 +127,7 @@ export function NewTimeSlotManager() {
 
   // Load schedule data from API
   const loadScheduleData = async () => {
-    if (!user?.id) {
+    if (!providerId) {
       setLoading(false)
       return
     }
@@ -138,8 +138,8 @@ export function NewTimeSlotManager() {
 
       // Load templates and overrides
       const [templates, overrides] = await Promise.all([
-        apiService.getMyAvailabilityTemplates(),
-        apiService.getMyAvailabilityOverrides()
+        apiService.getAvailabilityTemplates(providerId),
+        apiService.getAvailabilityOverrides(providerId)
       ])
 
       // Convert backend data to our format
@@ -393,7 +393,7 @@ export function NewTimeSlotManager() {
 
   // Save changes
   const saveChanges = async () => {
-    if (!user?.id) return
+    if (!providerId) return
 
     try {
       setSaveLoading(true)
@@ -406,7 +406,7 @@ export function NewTimeSlotManager() {
       // Save templates first
       for (const template of templates) {
         try {
-          await apiService.createAvailabilityTemplate(user.id, template)
+          await apiService.createAvailabilityTemplate(providerId, template)
         } catch (err) {
           // If it already exists, update it
           // In a real app, we'd track IDs properly
@@ -418,9 +418,9 @@ export function NewTimeSlotManager() {
       for (const override of overrides) {
         try {
           if (override.id && override.id !== 'new') {
-            await apiService.updateAvailabilityOverride(user.id, override.id, override)
+            await apiService.updateAvailabilityOverride(providerId, override.id, override)
           } else {
-            await apiService.createAvailabilityOverride(user.id, override)
+            await apiService.createAvailabilityOverride(providerId, override)
           }
         } catch (err) {
           console.warn('Error saving override:', err)

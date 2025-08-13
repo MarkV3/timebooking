@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Montserrat } from "next/font/google";
+import { Plus_Jakarta_Sans, Sora } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { TimezoneProvider } from "@/contexts/TimezoneContext";
@@ -10,13 +10,13 @@ import { GlobalLoadingIndicator } from "@/components/ui/GlobalLoadingIndicator";
 import { LoadingInitializer } from "@/components/LoadingInitializer";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
-const inter = Inter({
+const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
 });
 
-const montserrat = Montserrat({
+const sora = Sora({
   subsets: ["latin"],
   variable: "--font-heading",
   display: "swap",
@@ -33,7 +33,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${montserrat.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${plusJakarta.variable} ${sora.variable}`} suppressHydrationWarning>
       <body className="antialiased" suppressHydrationWarning={true}>
         <LoadingProvider>
           <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}>

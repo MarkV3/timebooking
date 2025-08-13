@@ -333,7 +333,7 @@ export function AvailabilityCalendar() {
 
   if (loading) {
     return (
-      <Card className="shadow-lg border-0 bg-white">
+      <Card className="shadow-lg border-0 bg-card">
         <CardContent className="p-6">
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
@@ -348,7 +348,7 @@ export function AvailabilityCalendar() {
 
   if (error) {
     return (
-      <Card className="shadow-lg border-0 bg-white">
+      <Card className="shadow-lg border-0 bg-card">
         <CardContent className="p-6">
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
@@ -368,7 +368,7 @@ export function AvailabilityCalendar() {
       <div className="space-y-6 animate-slide-in">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-bold text-foreground">
               {formatDisplayDate(selectedDay.date, 'full')}
             </h2>
             <TimezoneDisplay />
@@ -405,7 +405,7 @@ export function AvailabilityCalendar() {
           </div>
         </div>
         
-        <Card className="shadow-lg border-0 bg-white">
+        <Card className="shadow-lg border-0 bg-card">
           <CardContent className="p-6">
             {getSlotsForDate(selectedDay.date).length === 0 ? (
               <div className="text-center py-8">
@@ -434,7 +434,7 @@ export function AvailabilityCalendar() {
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-3">
                           <div className={`w-3 h-3 rounded-full ${slot.isBooked ? 'bg-red-500' : 'bg-green-500'}`} />
-                          <div className="font-semibold text-gray-900">
+                          <div className="font-semibold text-foreground">
                             {slot.start} - {slot.end}
                           </div>
                         </div>
@@ -472,6 +472,20 @@ export function AvailabilityCalendar() {
                               {slot.serviceDescription}
                             </p>
                           )}
+                        </div>
+                      )}
+                      {/* Customer Notes/Comments */}
+                      {slot.isBooked && getBookingForSlot(slot.id)?.booking?.notes && (
+                        <div className="pl-6 mt-2 pt-2 border-t-2 border-red-100 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 bg-amber-100 rounded flex items-center justify-center">
+                              <span className="text-amber-600 text-xs font-bold">💬</span>
+                            </div>
+                            <span className="text-xs font-medium text-gray-700">Customer Notes</span>
+                          </div>
+                          <p className="text-xs text-gray-600 italic pl-6">
+                            "{getBookingForSlot(slot.id)?.booking?.notes}"
+                          </p>
                         </div>
                       )}
                     </div>

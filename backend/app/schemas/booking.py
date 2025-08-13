@@ -10,6 +10,9 @@ class BookingBase(BaseModel):
 class BookingCreate(BookingBase):
     pass
 
+class BookingCancel(BaseModel):
+    reason: Optional[str] = None
+
 class BookingUpdate(BaseModel):
     status: Optional[str] = None  # confirmed, cancelled, completed
     notes: Optional[str] = None
@@ -20,6 +23,7 @@ class BookingResponse(BookingBase):
     status: str
     total_price: float
     created_at: datetime
+    cancellation_reason: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -47,6 +51,7 @@ class BookingWithDetailsResponse(BookingResponse):
     appointment_end_time: datetime
     customer_name: Optional[str] = None  # Only present for service providers
     customer_email: Optional[str] = None  # Only present for service providers
+    cancellation_reason: Optional[str] = None
     
     class Config:
         from_attributes = True
