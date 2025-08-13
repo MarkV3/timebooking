@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Montserrat } from "next/font/google";
+import { Inter, Calistoga } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { TimezoneProvider } from "@/contexts/TimezoneContext";
@@ -16,10 +16,11 @@ const inter = Inter({
   display: "swap",
 });
 
-const montserrat = Montserrat({
+const calistoga = Calistoga({
   subsets: ["latin"],
   variable: "--font-heading",
   display: "swap",
+  weight: "400",
 });
 
 export const metadata: Metadata = {
@@ -33,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${montserrat.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${calistoga.variable}`} suppressHydrationWarning>
       <body className="antialiased" suppressHydrationWarning={true}>
         <LoadingProvider>
           <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}>

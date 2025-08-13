@@ -1,25 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #0f172a;
-  --primary: #3b82f6;
-  --primary-foreground: #ffffff;
-  --secondary: #10b981;
-  --secondary-foreground: #ffffff;
-  --accent: #8b5cf6;
-  --accent-foreground: #ffffff;
-  --muted: #f8fafc;
+  --background: #f8fafc;
+  --foreground: #020817;
+  --primary: #2563eb;
+  --primary-foreground: #f8fafc;
+  --secondary: #059669;
+  --secondary-foreground: #f8fafc;
+  --accent: #ea580c;
+  --accent-foreground: #f8fafc;
+  --muted: #f1f5f9;
   --muted-foreground: #64748b;
-  --border: #e5e7eb;
-  --input: #ffffff;
+  --border: #e2e8f0;
+  --input: #f1f5f9;
   --ring: #2563eb;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
+  --destructive: #dc2626;
+  --destructive-foreground: #f8fafc;
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #020817;
   --popover: #ffffff;
-  --popover-foreground: #0f172a;
+  --popover-foreground: #020817;
 }
 
 @theme inline {
@@ -44,42 +44,40 @@
   --color-popover-foreground: var(--popover-foreground);
   
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-heading: 'Montserrat', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Calistoga', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   
-  --radius: 14px;
-  --transition-duration: 180ms;
+  --radius: 16px;
+  --transition-duration: 200ms;
   --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #f8fafc;
-    --foreground: #1e293b;
+    --background: #020817;
+    --foreground: #f8fafc;
     --primary: #3b82f6;
-    --primary-foreground: #ffffff;
+    --primary-foreground: #f8fafc;
     --secondary: #10b981;
-    --secondary-foreground: #ffffff;
-    --accent: #8b5cf6;
-    --accent-foreground: #ffffff;
-    --muted: #f1f5f9;
-    --muted-foreground: #64748b;
-    --border: #e2e8f0;
-    --input: #ffffff;
+    --secondary-foreground: #f8fafc;
+    --accent: #fb923c;
+    --accent-foreground: #020817;
+    --muted: #1e293b;
+    --muted-foreground: #94a3b8;
+    --border: #1e293b;
+    --input: #1e293b;
     --ring: #3b82f6;
     --destructive: #ef4444;
-    --destructive-foreground: #ffffff;
-    --card: #ffffff;
-    --card-foreground: #1e293b;
-    --popover: #ffffff;
-    --popover-foreground: #1e293b;
+    --destructive-foreground: #f8fafc;
+    --card: #0f172a;
+    --card-foreground: #f8fafc;
+    --popover: #0f172a;
+    --popover-foreground: #f8fafc;
   }
 }
 
 body {
-  background: radial-gradient(1200px 600px at 100% -50%, rgba(59,130,246,0.06), transparent),
-              radial-gradient(1000px 500px at -20% 120%, rgba(16,185,129,0.06), transparent),
-              var(--background);
+  background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
   line-height: 1.6;

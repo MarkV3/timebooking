@@ -1,7 +1,7 @@
 from typing import List, Optional
 from datetime import datetime, date, time, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.core.database import get_db
 from app.core.auth import get_current_active_user
 from app.models.database import User, ServiceProvider, Service, TimeSlot, Booking
@@ -110,107 +110,61 @@ async def get_my_bookings(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    """Get all bookings for current user with full details"""
+    """Get all bookings for the current user with full details."""
     
+    query = db.query(Booking).options(
+        joinedload(Booking.service).joinedload(Service.provider),
+        joinedload(Booking.time_slot),
+        joinedload(Booking.customer)
+    )
+
     if current_user.user_type == "customer":
-        # Get bookings with joined data for customers
-        bookings_query = (
-            db.query(Booking)
-            .join(Service, Booking.service_id == Service.id)
-            .join(ServiceProvider, Service.provider_id == ServiceProvider.id)
-            .join(TimeSlot, Booking.time_slot_id == TimeSlot.id)
-            .filter(Booking.customer_id == current_user.id)
-            .order_by(TimeSlot.start_time.desc())
-        )
-        
-        bookings = bookings_query.all()
-        
-        # Build detailed response for customers
-        detailed_bookings = []
-        for booking in bookings:
-            service = db.query(Service).filter(Service.id == booking.service_id).first()
-            provider = db.query(ServiceProvider).filter(ServiceProvider.id == service.provider_id).first()
-            time_slot = db.query(TimeSlot).filter(TimeSlot.id == booking.time_slot_id).first()
-            
-            # Skip bookings with missing critical data to prevent errors
-            if not service or not provider or not time_slot:
-                continue
-                
-            detailed_bookings.append(BookingWithDetailsResponse(
-                id=booking.id,
-                customer_id=booking.customer_id,
-                service_id=booking.service_id,
-                time_slot_id=booking.time_slot_id,
-                status=booking.status,
-                notes=booking.notes,
-                total_price=booking.total_price,
-                created_at=booking.created_at,
-                cancellation_reason=booking.cancellation_reason,
-                service_name=service.name,
-                service_description=service.description,
-                provider_name=provider.business_name,
-                provider_id=provider.id,
-                appointment_start_time=time_slot.start_time,
-                appointment_end_time=time_slot.end_time
-            ))
-        
-        return detailed_bookings
-        
+        query = query.filter(Booking.customer_id == current_user.id)
     elif current_user.user_type == "service_provider":
-        # Get provider profile
+        # It's more efficient to get the provider ID from the user's relationships if possible,
+        # but a direct query is also fine and explicit.
         provider = db.query(ServiceProvider).filter(ServiceProvider.user_id == current_user.id).first()
         if not provider:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Service provider profile not found"
+                detail="Service provider profile not found for the current user."
             )
-        
-        # Get all bookings for provider's services
-        bookings_query = (
-            db.query(Booking)
-            .join(Service, Booking.service_id == Service.id)
-            .join(TimeSlot, Booking.time_slot_id == TimeSlot.id)
-            .join(User, Booking.customer_id == User.id)
-            .filter(Service.provider_id == provider.id)
-            .order_by(TimeSlot.start_time.desc())
-        )
-        
-        bookings = bookings_query.all()
-        
-        # Build detailed response for providers
-        detailed_bookings = []
-        for booking in bookings:
-            service = db.query(Service).filter(Service.id == booking.service_id).first()
-            customer = db.query(User).filter(User.id == booking.customer_id).first()
-            time_slot = db.query(TimeSlot).filter(TimeSlot.id == booking.time_slot_id).first()
-            
-            # Skip bookings with missing critical data to prevent errors
-            if not service or not customer or not time_slot:
-                continue
-                
-            detailed_bookings.append(BookingWithDetailsResponse(
-                id=booking.id,
-                customer_id=booking.customer_id,
-                service_id=booking.service_id,
-                time_slot_id=booking.time_slot_id,
-                status=booking.status,
-                notes=booking.notes,
-                total_price=booking.total_price,
-                created_at=booking.created_at,
-                cancellation_reason=booking.cancellation_reason,
-                service_name=service.name,
-                service_description=service.description,
-                provider_name=provider.business_name,
-                provider_id=provider.id,
-                appointment_start_time=time_slot.start_time,
-                appointment_end_time=time_slot.end_time,
-                customer_name=customer.full_name,
-                customer_email=customer.email
-            ))
-        
-        return detailed_bookings
+        # We need to join the service to filter by provider_id
+        query = query.join(Booking.service).filter(Service.provider_id == provider.id)
     else:
+        # This case should ideally not be reached if user types are limited
         return []
+
+    # The join to TimeSlot is necessary for ordering
+    bookings = query.join(Booking.time_slot).order_by(TimeSlot.start_time.desc()).all()
+
+    # The conversion to the response model is now much cleaner
+    detailed_bookings = [
+        BookingWithDetailsResponse(
+            id=booking.id,
+            customer_id=booking.customer_id,
+            service_id=booking.service_id,
+            time_slot_id=booking.time_slot_id,
+            status=booking.status,
+            notes=booking.notes,
+            total_price=booking.total_price,
+            created_at=booking.created_at,
+            cancellation_reason=booking.cancellation_reason,
+            # Accessing related objects is now efficient
+            service_name=booking.service.name,
+            service_description=booking.service.description,
+            provider_name=booking.service.provider.business_name,
+            provider_id=booking.service.provider.id,
+            appointment_start_time=booking.time_slot.start_time,
+            appointment_end_time=booking.time_slot.end_time,
+            customer_name=booking.customer.full_name if booking.customer else None,
+            customer_email=booking.customer.email if booking.customer else None,
+        )
+        for booking in bookings
+        if booking.service and booking.time_slot and booking.customer and booking.service.provider
+    ]
+
+    return detailed_bookings
 
 @router.get("/services/{service_id}/time-slots", response_model=List[TimeSlotResponse])
 async def get_service_time_slots(

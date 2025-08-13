@@ -5,6 +5,7 @@ from sqlalchemy import or_
 from datetime import date
 from app.core.database import get_db
 from app.core.auth import get_current_active_user
+from app.api.dependencies import get_current_provider
 from app.models.database import User, ServiceProvider, Service, Booking, TimeSlot
 from app.schemas.service_provider import (
     ServiceProviderResponse, 
@@ -49,23 +50,9 @@ async def search_service_providers(
 
 @router.get("/me", response_model=ServiceProviderResponse)
 async def get_my_provider_profile(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    provider: ServiceProvider = Depends(get_current_provider)
 ):
     """Get current user's service provider profile"""
-    if current_user.user_type != "service_provider":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not a service provider"
-        )
-    
-    provider = db.query(ServiceProvider).filter(ServiceProvider.user_id == current_user.id).first()
-    if not provider:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Service provider profile not found"
-        )
-    
     return provider
 
 @router.get("/user/{user_id}", response_model=ServiceProviderResponse)
@@ -83,23 +70,10 @@ async def get_service_provider_by_user_id(user_id: str, db: Session = Depends(ge
 @router.put("/me", response_model=ServiceProviderResponse)
 async def update_my_provider_profile(
     provider_update: ServiceProviderUpdate,
-    current_user: User = Depends(get_current_active_user),
+    provider: ServiceProvider = Depends(get_current_provider),
     db: Session = Depends(get_db)
 ):
     """Update current user's service provider profile"""
-    if current_user.user_type != "service_provider":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not a service provider"
-        )
-    
-    provider = db.query(ServiceProvider).filter(ServiceProvider.user_id == current_user.id).first()
-    if not provider:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Service provider profile not found"
-        )
-    
     # Update fields
     for field, value in provider_update.dict(exclude_unset=True).items():
         setattr(provider, field, value)
@@ -124,23 +98,10 @@ async def get_service_provider(provider_id: str, db: Session = Depends(get_db)):
 @router.post("/me/services", response_model=ServiceResponse)
 async def create_service(
     service: ServiceCreate,
-    current_user: User = Depends(get_current_active_user),
+    provider: ServiceProvider = Depends(get_current_provider),
     db: Session = Depends(get_db)
 ):
     """Create a new service for current service provider"""
-    if current_user.user_type != "service_provider":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not a service provider"
-        )
-    
-    provider = db.query(ServiceProvider).filter(ServiceProvider.user_id == current_user.id).first()
-    if not provider:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Service provider profile not found"
-        )
-    
     db_service = Service(
         provider_id=provider.id,
         name=service.name,
@@ -158,23 +119,10 @@ async def create_service(
 
 @router.get("/me/services", response_model=List[ServiceResponse])
 async def get_my_services(
-    current_user: User = Depends(get_current_active_user),
+    provider: ServiceProvider = Depends(get_current_provider),
     db: Session = Depends(get_db)
 ):
     """Get all services for current service provider"""
-    if current_user.user_type != "service_provider":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not a service provider"
-        )
-    
-    provider = db.query(ServiceProvider).filter(ServiceProvider.user_id == current_user.id).first()
-    if not provider:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Service provider profile not found"
-        )
-    
     services = db.query(Service).filter(Service.provider_id == provider.id).all()
     return services
 
@@ -196,60 +144,54 @@ async def get_provider_services(provider_id: str, db: Session = Depends(get_db))
 
 @router.get("/me/schedule", response_model=List[ProviderScheduleSlotResponse])
 async def get_my_provider_schedule(
+    provider: ServiceProvider = Depends(get_current_provider),
     start_date: date = Query(..., description="Start date for schedule"),
     end_date: Optional[date] = Query(None, description="End date for schedule (defaults to start_date)"),
-    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Get the complete schedule for current service provider including bookings"""
-    if current_user.user_type != "service_provider":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not a service provider"
-        )
-    
-    provider = db.query(ServiceProvider).filter(ServiceProvider.user_id == current_user.id).first()
-    if not provider:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Service provider profile not found"
-        )
-    
     if end_date is None:
         end_date = start_date
     
     # Get all slots (both available and booked) for the date range
     all_slots = get_provider_schedule_slots(provider.id, start_date, end_date, db)
     
-    # Build response with booking information
+    # N+1 problem optimization:
+    # 1. Get all booked slot IDs
+    booked_slot_ids = [slot.id for slot in all_slots if slot.is_booked]
+
+    # 2. Fetch all relevant bookings in one query
+    bookings_map = {}
+    if booked_slot_ids:
+        bookings = db.query(Booking).options(
+            joinedload(Booking.customer),
+            joinedload(Booking.service)
+        ).filter(
+            Booking.time_slot_id.in_(booked_slot_ids),
+            Booking.status != "cancelled"
+        ).all()
+        bookings_map = {b.time_slot_id: b for b in bookings}
+
+    # 3. Build the response without N+1 queries
     schedule_responses = []
     for slot in all_slots:
         booking_info = None
-        if slot.is_booked:
-            # Query the current active booking (not cancelled) for this time slot
-            booking = db.query(Booking).filter(
-                Booking.time_slot_id == slot.id,
-                Booking.status != "cancelled"
-            ).first()
-            if booking:
-                # Get customer and service information
-                customer = db.query(User).filter(User.id == booking.customer_id).first()
-                service = db.query(Service).filter(Service.id == booking.service_id).first()
-                
-                if customer and service:
-                    booking_info = BookingWithCustomerResponse(
-                        id=booking.id,
-                        service_id=booking.service_id,
-                        time_slot_id=booking.time_slot_id,
-                        customer_id=booking.customer_id,
-                        customer_name=customer.full_name,
-                        customer_email=customer.email,
-                        service_name=service.name,
-                        status=booking.status,
-                        total_price=booking.total_price,
-                        created_at=booking.created_at,
-                        notes=booking.notes
-                    )
+        booking = bookings_map.get(slot.id)
+
+        if booking and booking.customer and booking.service:
+            booking_info = BookingWithCustomerResponse(
+                id=booking.id,
+                service_id=booking.service_id,
+                time_slot_id=booking.time_slot_id,
+                customer_id=booking.customer_id,
+                customer_name=booking.customer.full_name,
+                customer_email=booking.customer.email,
+                service_name=booking.service.name,
+                status=booking.status,
+                total_price=booking.total_price,
+                created_at=booking.created_at,
+                notes=booking.notes
+            )
         
         schedule_responses.append(ProviderScheduleSlotResponse(
             id=slot.id,
@@ -266,46 +208,20 @@ async def get_my_provider_schedule(
 # Availability endpoints for current user
 @router.get("/me/availability/templates", response_model=List[AvailabilityTemplateResponse])
 async def get_my_availability_templates(
-    current_user: User = Depends(get_current_active_user),
+    provider: ServiceProvider = Depends(get_current_provider),
     db: Session = Depends(get_db)
 ):
     """Get availability templates for current service provider"""
-    if current_user.user_type != "service_provider":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not a service provider"
-        )
-    
-    provider = db.query(ServiceProvider).filter(ServiceProvider.user_id == current_user.id).first()
-    if not provider:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Service provider profile not found"
-        )
-    
     from app.services.availability import AvailabilityService
     templates = AvailabilityService.get_availability_templates(db, provider.id)
     return templates
 
 @router.get("/me/availability/overrides", response_model=List[AvailabilityOverrideResponse])
 async def get_my_availability_overrides(
-    current_user: User = Depends(get_current_active_user),
+    provider: ServiceProvider = Depends(get_current_provider),
     db: Session = Depends(get_db)
 ):
     """Get availability overrides for current service provider"""
-    if current_user.user_type != "service_provider":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not a service provider"
-        )
-    
-    provider = db.query(ServiceProvider).filter(ServiceProvider.user_id == current_user.id).first()
-    if not provider:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Service provider profile not found"
-        )
-    
     from app.services.availability import AvailabilityService
     overrides = AvailabilityService.get_availability_overrides(db, provider.id)
     return overrides 
