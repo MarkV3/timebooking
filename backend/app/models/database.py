@@ -142,4 +142,4 @@ class Booking(Base):
     # Relationships
     customer = relationship("User", back_populates="bookings")
     service = relationship("Service", back_populates="bookings")
-    time_slot = relationship("TimeSlot", back_populates="booking") 
+    time_slot = relationship("TimeSlot", back_populates="booking")
