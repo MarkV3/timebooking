@@ -19,6 +19,8 @@ from app.services.time_slots import (
     get_provider_schedule_slots as _svc_get_provider_schedule_slots,
     cleanup_orphaned_slots,
 )
+from app.services.calendar_service import calendar_service
+import json
 
 router = APIRouter()
 
@@ -102,6 +104,58 @@ async def create_booking(
     db.add(db_booking)
     db.commit()
     db.refresh(db_booking)
+    
+    # Create calendar events if enabled
+    try:
+        # Customer calendar event
+        if current_user.google_calendar_enabled and current_user.google_calendar_token:
+            try:
+                token_data = json.loads(current_user.google_calendar_token)
+                event_details = {
+                    'summary': f'Appointment: {service.name}',
+                    'description': f'Appointment with {service.provider.business_name if service.provider else "Service Provider"}\n\nService: {service.name}\nBooking ID: {db_booking.id}',
+                    'start_time': time_slot.start_time,
+                    'end_time': time_slot.end_time,
+                    'location': f'{service.provider.address}, {service.provider.city}, {service.provider.state}' if service.provider and service.provider.address else None
+                }
+                
+                calendar_event_id = await calendar_service.create_calendar_event(
+                    token_data=token_data,
+                    event_details=event_details
+                )
+                
+                if calendar_event_id:
+                    db_booking.google_calendar_event_id = calendar_event_id
+                    db.commit()
+                    
+            except Exception as e:
+                print(f"Failed to create customer calendar event: {e}")
+        
+        # Provider calendar event (if they have calendar enabled)
+        if (service.provider and service.provider.user and 
+            service.provider.user.google_calendar_enabled and 
+            service.provider.user.google_calendar_token):
+            try:
+                token_data = json.loads(service.provider.user.google_calendar_token)
+                event_details = {
+                    'summary': f'Booking: {service.name}',
+                    'description': f'Appointment with {current_user.full_name}\n\nService: {service.name}\nCustomer Email: {current_user.email}\nBooking ID: {db_booking.id}',
+                    'start_time': time_slot.start_time,
+                    'end_time': time_slot.end_time,
+                    'attendees': [current_user.email]
+                }
+                
+                await calendar_service.create_calendar_event(
+                    token_data=token_data,
+                    event_details=event_details
+                )
+                    
+            except Exception as e:
+                print(f"Failed to create provider calendar event: {e}")
+                
+    except Exception as e:
+        # Log error but don't fail the booking
+        print(f"Failed to create calendar events: {e}")
     
     return db_booking
 

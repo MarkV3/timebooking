@@ -64,12 +64,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const user = authService.getUser()
       setUser(user)
       
-      // Redirect based on user type
-      if (user?.user_type === 'service_provider') {
-        router.push('/providers/dashboard')
-      } else {
-        router.push('/services')
-      }
+      // Redirect all authenticated users to unified dashboard
+      router.push('/dashboard')
     } catch (error) {
       throw error
     } finally {
@@ -84,12 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const user = authService.getUser()
       setUser(user)
       
-      // Redirect based on user type
-      if (user?.user_type === 'service_provider') {
-        router.push('/providers/dashboard')
-      } else {
-        router.push('/services')
-      }
+      // Redirect all authenticated users to unified dashboard
+      router.push('/dashboard')
     } catch (error) {
       throw error
     } finally {

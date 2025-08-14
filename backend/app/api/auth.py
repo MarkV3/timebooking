@@ -111,4 +111,49 @@ async def login_user(user_credentials: UserLogin, db: Session = Depends(get_db))
 @router.get("/me", response_model=UserResponse)
 async def get_current_user_profile(current_user: User = Depends(get_current_active_user)):
     """Get current authenticated user profile"""
+    return current_user
+
+@router.post("/become-provider", response_model=UserResponse)
+async def become_service_provider(
+    provider_data: ServiceProviderCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Upgrade existing user to become a service provider"""
+    # Check if user is already a service provider
+    if current_user.user_type == "service_provider":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User is already a service provider"
+        )
+    
+    # Check if user already has a provider profile
+    existing_provider = db.query(ServiceProvider).filter(ServiceProvider.user_id == current_user.id).first()
+    if existing_provider:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Service provider profile already exists"
+        )
+    
+    # Create service provider profile
+    db_provider = ServiceProvider(
+        user_id=current_user.id,
+        business_name=provider_data.business_name,
+        description=provider_data.description,
+        phone=provider_data.phone,
+        address=provider_data.address,
+        city=provider_data.city,
+        state=provider_data.state,
+        zip_code=provider_data.zip_code,
+        profile_image_url=provider_data.profile_image_url
+    )
+    
+    # Update user type
+    current_user.user_type = "service_provider"
+    
+    db.add(db_provider)
+    db.commit()
+    db.refresh(current_user)
+    db.refresh(db_provider)
+    
     return current_user 

@@ -63,12 +63,8 @@ export default function Home() {
 
   useEffect(() => {
     if (!authLoading && isAuthenticated && user) {
-      // Redirect authenticated users to their appropriate dashboard
-      if (user.user_type === 'service_provider') {
-        router.push('/providers/dashboard')
-      } else {
-        router.push('/services')
-      }
+      // Redirect all authenticated users to unified dashboard
+      router.push('/dashboard')
     }
   }, [isAuthenticated, user, authLoading, router])
 

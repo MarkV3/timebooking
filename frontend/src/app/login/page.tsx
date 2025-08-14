@@ -21,11 +21,7 @@ export default function LoginPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      if (user.user_type === 'service_provider') {
-        router.push('/providers/dashboard')
-      } else {
-        router.push('/services')
-      }
+      router.push('/dashboard')
     }
   }, [isAuthenticated, user, router])
 

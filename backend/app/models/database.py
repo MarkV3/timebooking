@@ -15,6 +15,9 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     user_type = Column(String, nullable=False)  # "customer" or "service_provider"
+    stripe_customer_id = Column(String, unique=True)  # Stripe customer ID
+    google_calendar_token = Column(Text)  # Google Calendar OAuth token (JSON)
+    google_calendar_enabled = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
@@ -136,6 +139,7 @@ class Booking(Base):
     notes = Column(Text)
     cancellation_reason = Column(Text)
     total_price = Column(Float, nullable=False)
+    google_calendar_event_id = Column(String)  # Google Calendar event ID
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
@@ -143,3 +147,23 @@ class Booking(Base):
     customer = relationship("User", back_populates="bookings")
     service = relationship("Service", back_populates="bookings")
     time_slot = relationship("TimeSlot", back_populates="booking")
+    payment = relationship("Payment", back_populates="booking", uselist=False)
+
+class Payment(Base):
+    __tablename__ = "payments"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    booking_id = Column(String, ForeignKey("bookings.id"), nullable=False)
+    stripe_payment_intent_id = Column(String, unique=True, nullable=False)
+    stripe_customer_id = Column(String)
+    amount = Column(Float, nullable=False)  # Amount in dollars
+    currency = Column(String, default="usd")
+    status = Column(String, nullable=False)  # pending, succeeded, failed, canceled, refunded
+    payment_method = Column(String)  # card, bank_transfer, etc.
+    refund_amount = Column(Float, default=0.0)
+    payment_metadata = Column(Text)  # JSON string for additional data
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    booking = relationship("Booking", back_populates="payment")

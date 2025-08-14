@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.api import auth, providers, bookings, categories, google_auth
+from app.api import auth, providers, bookings, categories, google_auth, payments, calendar
 from app.core.database import get_db
 from app.core.auth import get_current_active_user
 from app.models.database import User
@@ -25,6 +25,8 @@ api_router.include_router(providers.router, prefix="/providers", tags=["Service 
 api_router.include_router(bookings.router, prefix="/bookings", tags=["Bookings"])
 api_router.include_router(categories.router, prefix="/categories", tags=["Categories"])
 api_router.include_router(google_auth.router, prefix="/auth", tags=["Authentication"])
+api_router.include_router(payments.router, prefix="/payments", tags=["Payments"])
+api_router.include_router(calendar.router, prefix="/calendar", tags=["Calendar"])
 
 @api_router.get("/")
 async def api_root():

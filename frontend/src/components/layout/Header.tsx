@@ -40,36 +40,31 @@ export function Header() {
         {isAuthenticated ? (
           <div className="flex items-center space-x-4">
             <nav className="hidden md:flex items-center space-x-6">
-              {user?.user_type === 'customer' ? (
-                <>
-                  <Link 
-                    href="/services" 
-                    className="text-sm font-medium text-foreground/80 hover:text-foreground"
-                  >
-                    Browse Services
-                  </Link>
-                  <Link 
-                    href="/bookings" 
-                    className="text-sm font-medium text-foreground/80 hover:text-foreground"
-                  >
-                    My Bookings
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link 
-                    href="/providers/dashboard" 
-                    className="text-sm font-medium text-foreground/80 hover:text-foreground"
-                  >
-                    Dashboard
-                  </Link>
-                  <Link 
-                    href="/providers/bookings" 
-                    className="text-sm font-medium text-foreground/80 hover:text-foreground"
-                  >
-                    My Bookings
-                  </Link>
-                </>
+              <Link 
+                href="/dashboard" 
+                className="text-sm font-medium text-foreground/80 hover:text-foreground"
+              >
+                Dashboard
+              </Link>
+              <Link 
+                href="/services" 
+                className="text-sm font-medium text-foreground/80 hover:text-foreground"
+              >
+                Browse Services
+              </Link>
+              <Link 
+                href="/bookings" 
+                className="text-sm font-medium text-foreground/80 hover:text-foreground"
+              >
+                My Bookings
+              </Link>
+              {user?.user_type === 'service_provider' && (
+                <Link 
+                  href="/providers/dashboard" 
+                  className="text-sm font-medium text-foreground/80 hover:text-foreground"
+                >
+                  Provider Portal
+                </Link>
               )}
             </nav>
             
