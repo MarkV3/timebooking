@@ -15,6 +15,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     user_type = Column(String, nullable=False)  # "customer" or "service_provider"
+    auth_provider = Column(String, nullable=False, default="email")  # "email" or "google"
     stripe_customer_id = Column(String, unique=True)  # Stripe customer ID
     google_calendar_token = Column(Text)  # Google Calendar OAuth token (JSON)
     google_calendar_enabled = Column(Boolean, default=False)

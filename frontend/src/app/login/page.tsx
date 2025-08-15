@@ -7,7 +7,7 @@ import { Button } from '@/components/ui'
 import { Input } from '@/components/ui'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
-import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import { GoogleLoginButton } from '@/components/auth/GoogleLoginButton'
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -15,7 +15,7 @@ export default function LoginPage() {
     password: ''
   })
   const [error, setError] = useState('')
-  const { login, googleLogin, loading, isAuthenticated, user } = useAuth()
+  const { login, loading, isAuthenticated, user } = useAuth()
   const router = useRouter()
 
   // Redirect if already authenticated
@@ -24,22 +24,6 @@ export default function LoginPage() {
       router.push('/dashboard')
     }
   }, [isAuthenticated, user, router])
-
-  const handleGoogleLoginSuccess = async (credentialResponse: any) => {
-    if (credentialResponse.credential) {
-      try {
-        await googleLogin(credentialResponse.credential);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Google login failed');
-      }
-    } else {
-      setError('Google login failed: no credential returned');
-    }
-  };
-
-  const handleGoogleLoginError = () => {
-    setError('Google login failed');
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -154,10 +138,7 @@ export default function LoginPage() {
                     </div>
                   </div>
 
-                  <GoogleLogin
-                    onSuccess={handleGoogleLoginSuccess}
-                    onError={handleGoogleLoginError}
-                  />
+                  <GoogleLoginButton />
                 </form>
 
                 <div className="mt-6 text-center">

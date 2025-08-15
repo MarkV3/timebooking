@@ -4,6 +4,7 @@ export interface User {
   email: string
   name: string
   role: 'customer' | 'provider'
+  auth_provider: 'email' | 'google'
   avatar?: string
   createdAt: Date
   updatedAt: Date
