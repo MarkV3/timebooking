@@ -25,7 +25,8 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
         email=user.email,
         full_name=user.full_name,
         hashed_password=hashed_password,
-        user_type=user.user_type
+        user_type=user.user_type,
+        auth_provider="email"
     )
     
     db.add(db_user)
@@ -58,7 +59,8 @@ async def register_service_provider(
         email=user.email,
         full_name=user.full_name,
         hashed_password=hashed_password,
-        user_type=user.user_type
+        user_type=user.user_type,
+        auth_provider="email"
     )
     
     db.add(db_user)

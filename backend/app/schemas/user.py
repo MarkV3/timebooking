@@ -6,6 +6,7 @@ class UserBase(BaseModel):
     email: EmailStr
     full_name: str
     user_type: str  # "customer" or "service_provider"
+    auth_provider: Optional[str] = None
 
 class UserCreate(UserBase):
     password: str
@@ -17,6 +18,7 @@ class UserLogin(BaseModel):
 class UserResponse(UserBase):
     id: str
     is_active: bool
+    auth_provider: str
     created_at: datetime
     
     class Config:

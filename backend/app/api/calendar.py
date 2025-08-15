@@ -12,44 +12,25 @@ import logging
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-class CalendarAuthResponse(BaseModel):
-    """Response for calendar authorization"""
-    authorization_url: str
-
-class CalendarTokenRequest(BaseModel):
-    """Request to store calendar token"""
-    auth_code: str
-
 class CalendarStatusResponse(BaseModel):
     """Response for calendar status"""
     enabled: bool
     connected: bool
 
-@router.get("/authorize", response_model=CalendarAuthResponse)
-async def get_calendar_authorization_url(
-    current_user: User = Depends(get_current_active_user)
-):
-    """Get Google Calendar authorization URL"""
-    try:
-        auth_url = calendar_service.get_authorization_url()
-        return CalendarAuthResponse(authorization_url=auth_url)
-    except Exception as e:
-        logger.error(f"Failed to get authorization URL: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to generate authorization URL"
-        )
+class CalendarConnectRequest(BaseModel):
+    auth_code: str
+    redirect_uri: str
 
-@router.post("/connect")
+@router.post("/connect-calendar")
 async def connect_calendar(
-    token_request: CalendarTokenRequest,
+    request: CalendarConnectRequest,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Connect user's Google Calendar"""
     try:
         # Exchange authorization code for token
-        token_data = calendar_service.exchange_code_for_token(token_request.auth_code)
+        token_data = calendar_service.exchange_code_for_token(request.auth_code, request.redirect_uri)
         
         # Validate token by making a test API call
         if not calendar_service.validate_token(token_data):

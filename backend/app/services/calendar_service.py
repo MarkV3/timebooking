@@ -38,7 +38,7 @@ class GoogleCalendarService:
             logger.error(f"Failed to create calendar service: {e}")
             raise
     
-    def get_authorization_url(self) -> str:
+    def get_authorization_url(self, redirect_uri: str) -> str:
         """Get Google Calendar authorization URL"""
         from google_auth_oauthlib.flow import Flow
         
@@ -49,12 +49,12 @@ class GoogleCalendarService:
                     "client_secret": self.client_secret,
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                     "token_uri": "https://oauth2.googleapis.com/token",
-                    "redirect_uris": [self.redirect_uri]
+                    "redirect_uris": [redirect_uri]
                 }
             },
             scopes=self.SCOPES
         )
-        flow.redirect_uri = self.redirect_uri
+        flow.redirect_uri = redirect_uri
         
         authorization_url, _ = flow.authorization_url(
             access_type='offline',
@@ -63,7 +63,7 @@ class GoogleCalendarService:
         
         return authorization_url
     
-    def exchange_code_for_token(self, auth_code: str) -> Dict[str, Any]:
+    def exchange_code_for_token(self, auth_code: str, redirect_uri: str) -> Dict[str, Any]:
         """Exchange authorization code for access token"""
         from google_auth_oauthlib.flow import Flow
         
@@ -74,12 +74,12 @@ class GoogleCalendarService:
                     "client_secret": self.client_secret,
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                     "token_uri": "https://oauth2.googleapis.com/token",
-                    "redirect_uris": [self.redirect_uri]
+                    "redirect_uris": [redirect_uri]
                 }
             },
             scopes=self.SCOPES
         )
-        flow.redirect_uri = self.redirect_uri
+        flow.redirect_uri = redirect_uri
         
         flow.fetch_token(code=auth_code)
         
