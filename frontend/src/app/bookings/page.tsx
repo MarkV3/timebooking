@@ -108,7 +108,7 @@ export default function MyBookingsPage() {
               {error}
             </div>
           ) : bookings.length === 0 ? (
-            <div className="text-center py-16 bg-card border border-border rounded-lg">
+            <div className="text-center py-16 bg-card rounded-lg shadow-sm">
               <h3 className="text-2xl font-heading mb-2">No Bookings Yet</h3>
               <p className="text-muted-foreground mb-6">Ready to book your next appointment?</p>
               <Link href="/services">

@@ -42,7 +42,7 @@ export function BookingConfirmationModal({
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
       <div className="bg-card rounded-lg shadow-2xl max-w-md w-full mx-4 animate-slide-in">
         <Card className="border-0">
-          <CardHeader className="text-center bg-card border-b border-border rounded-t-lg">
+          <CardHeader className="text-center bg-card rounded-t-lg">
             <div className="mx-auto w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mb-4 shadow-lg">
               <svg 
                 className="w-8 h-8 text-white" 
@@ -116,7 +116,7 @@ export function BookingConfirmationModal({
                 </div>
               </div>
               
-              <div className="pt-2 border-t border-border">
+              <div className="pt-2">
                 <p className="text-xs text-muted-foreground font-medium">
                   Booking ID: #{bookingData.bookingId.slice(0, 8).toUpperCase()}
                 </p>
@@ -124,7 +124,7 @@ export function BookingConfirmationModal({
             </div>
 
             {/* Calendar Notification */}
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+            <div className="bg-green-50 rounded-lg p-4 text-center shadow-sm">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />

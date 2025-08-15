@@ -136,7 +136,7 @@ export function PaymentForm({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="border rounded-lg p-4 bg-muted/50">
+        <div className="rounded-lg p-4 bg-muted/50 shadow-sm">
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">Total Amount:</span>
             <span className="text-lg font-semibold">{formatAmount(amount)}</span>

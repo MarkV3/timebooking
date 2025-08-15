@@ -14,13 +14,17 @@ export function GoogleLoginButton() {
       try {
         await googleLogin(codeResponse.code)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Google login failed')
+        const message = err instanceof Error ? err.message : 'Google login failed'
+        setError(message)
       }
     },
     onError: () => {
       setError('Google login failed')
     },
     flow: 'auth-code',
+    // Must match backend scopes to avoid "Scope has changed" errors
+    scope: 'openid email profile https://www.googleapis.com/auth/calendar',
+    prompt: 'consent',
   })
 
   return (

@@ -30,7 +30,7 @@ export function BookingCancellationModal({
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
       <div className="bg-card rounded-lg shadow-2xl max-w-md w-full mx-4 animate-slide-in">
         <Card className="border-0">
-          <CardHeader className="text-center bg-card border-b border-border rounded-t-lg">
+          <CardHeader className="text-center bg-card rounded-t-lg">
             <div className="mx-auto w-16 h-16 bg-gradient-to-br from-red-500 to-red-700 rounded-full flex items-center justify-center mb-4 shadow-lg">
               <AlertCircle className="w-8 h-8 text-white" />
             </div>
@@ -56,7 +56,7 @@ export function BookingCancellationModal({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="e.g., Schedule conflict, no longer needed..."
-                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent bg-background text-foreground"
+                className="w-full px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent bg-background text-foreground shadow-sm"
                 rows={3}
               />
             </div>

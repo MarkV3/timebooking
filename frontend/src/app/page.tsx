@@ -105,7 +105,7 @@ export default function Home() {
     };
 
     return (
-      <div className={`p-4 rounded-lg border ${getErrorStyles(error.type)} mb-6`}>
+      <div className={`p-4 rounded-lg shadow-sm ${getErrorStyles(error.type)} mb-6`}>
         <p className="text-sm font-medium">{error.message}</p>
       </div>
     );
@@ -168,7 +168,7 @@ export default function Home() {
               </div>
             </div>
             <div className="relative">
-              <div className="rounded-2xl border border-border bg-card shadow-xl p-4 lg:p-6">
+              <div className="rounded-2xl bg-card shadow-xl p-4 lg:p-6">
                 <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-muted to-muted/70 flex items-center justify-center text-muted-foreground">
                   Preview your schedule here
                 </div>

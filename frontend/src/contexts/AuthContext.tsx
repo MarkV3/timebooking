@@ -76,7 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const googleLogin = async (auth_code: string) => {
     try {
       setLoading(true)
-      await authService.googleLogin(auth_code)
+      // For @react-oauth/google with auth-code flow, backend expects auth_code and redirect_uri='postmessage'
+      await authService.googleLogin(auth_code, 'postmessage')
       const user = authService.getUser()
       setUser(user)
       

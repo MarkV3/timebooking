@@ -88,7 +88,7 @@ export default function BecomeProviderPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="bg-red-50 rounded-lg p-4 shadow-sm">
                   <p className="text-red-800 text-sm">{error}</p>
                 </div>
               )}
@@ -120,7 +120,7 @@ export default function BecomeProviderPage() {
                     onChange={handleChange}
                     placeholder="Describe your services and what makes your business special..."
                     rows={4}
-                    className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                    className="w-full px-3 py-2 rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring shadow-sm"
                   />
                 </div>
 
@@ -196,7 +196,7 @@ export default function BecomeProviderPage() {
                 </div>
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="bg-blue-50 rounded-lg p-4 shadow-sm">
                 <div className="flex items-start gap-3">
                   <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

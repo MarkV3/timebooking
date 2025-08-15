@@ -345,7 +345,7 @@ export function WeeklyCalendarView({ scheduleSlots, currentDate, onDateChange, o
           </div>
 
           {/* Calendar Grid */}
-          <div className="relative bg-card rounded-xl border border-border overflow-hidden">
+          <div className="relative bg-card rounded-xl overflow-hidden shadow-sm">
             {/* Scrollable Time Grid */}
             <div 
               ref={scrollContainerRef}

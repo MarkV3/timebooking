@@ -758,7 +758,7 @@ export function NewTimeSlotManager({ providerId }: { providerId: string }) {
 
                 {/* Day-Specific Overrides - Advanced Settings */}
                 {showAdvancedSettings && (
-                  <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
+                  <div className="space-y-4 p-4 bg-muted/30 rounded-lg shadow-sm">
                     <div className="space-y-1">
                       <h4 className="text-sm font-medium text-foreground">Day-Specific Rules</h4>
                       <p className="text-xs text-muted-foreground">Override default hours for specific days</p>
@@ -771,7 +771,7 @@ export function NewTimeSlotManager({ providerId }: { providerId: string }) {
                           const hasOverride = !!dayOverride
                           
                           return (
-                            <div key={day.value} className="p-3 bg-background rounded-md border">
+                            <div key={day.value} className="p-3 bg-background rounded-md shadow-sm">
                               <div className="flex items-center justify-between mb-3">
                                 <span className="text-sm font-medium">{day.name}</span>
                                 <Button
@@ -824,7 +824,7 @@ export function NewTimeSlotManager({ providerId }: { providerId: string }) {
                                   </div>
                                     
                                   {/* Day-specific break time */}
-                                  <div className="flex items-center justify-between pt-3 border-t">
+                                  <div className="flex items-center justify-between pt-3">
                                     <span className="text-xs text-muted-foreground">Break time</span>
                                     <Button
                                       onClick={() => {
@@ -938,8 +938,8 @@ export function NewTimeSlotManager({ providerId }: { providerId: string }) {
                         key={index}
                         className={`p-2 rounded-md text-xs ${
                           slot.status === 'available' 
-                            ? 'bg-primary/10 text-primary border border-primary/20' 
-                            : 'bg-muted text-muted-foreground border border-border'
+                            ? 'bg-primary/10 text-primary shadow-sm' 
+                            : 'bg-muted text-muted-foreground'
                         }`}
                       >
                         <div className="flex items-center justify-between">
@@ -956,7 +956,7 @@ export function NewTimeSlotManager({ providerId }: { providerId: string }) {
                   )}
                 </div>
                 {recurringPreviewSlots.length > 0 && (
-                  <div className="pt-3 border-t text-xs text-muted-foreground">
+                  <div className="pt-3 text-xs text-muted-foreground">
                     <div className="flex justify-between">
                       <span>Total: {recurringPreviewSlots.length}</span>
                       <span>Available: {recurringPreviewSlots.filter(s => s.status === 'available').length}</span>
@@ -981,7 +981,7 @@ export function NewTimeSlotManager({ providerId }: { providerId: string }) {
                 {/* Add New Override */}
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium text-foreground">Add Exception</h3>
-                  <div className="p-4 bg-muted/30 rounded-lg border">
+                  <div className="p-4 bg-muted/30 rounded-lg shadow-sm">
                     <AddOverrideForm onAdd={addSpecificOverride} />
                   </div>
                 </div>
@@ -1001,13 +1001,13 @@ export function NewTimeSlotManager({ providerId }: { providerId: string }) {
                       .sort((a, b) => a.date.localeCompare(b.date))
                       .map((override) => {
                         const typeColors = {
-                          unavailable: 'bg-destructive/10 border-destructive/20 text-destructive',
-                          custom_schedule: 'bg-primary/10 border-primary/20 text-primary',
-                          break_change: 'bg-amber-50 border-amber-200 text-amber-700'
+                          unavailable: 'bg-destructive/10 text-destructive shadow-sm',
+                          custom_schedule: 'bg-primary/10 text-primary shadow-sm',
+                          break_change: 'bg-amber-50 text-amber-700 shadow-sm'
                         }
                         
                         return (
-                          <div key={override.id} className={`p-3 rounded-md border ${typeColors[override.type]}`}>
+                          <div key={override.id} className={`p-3 rounded-md ${typeColors[override.type]}`}>
                             <div className="flex items-start justify-between">
                               <div className="space-y-1">
                                 <p className="text-sm font-medium">{override.date}</p>
@@ -1043,7 +1043,7 @@ export function NewTimeSlotManager({ providerId }: { providerId: string }) {
                       type="date"
                       value={previewDate}
                       onChange={(e) => setPreviewDate(e.target.value)}
-                      className="px-2 py-1 border border-border rounded-md text-xs"
+                      className="px-2 py-1 rounded-md text-xs bg-muted/30 shadow-sm"
                       min={new Date().toISOString().split('T')[0]}
                     />
                   </div>
@@ -1054,10 +1054,10 @@ export function NewTimeSlotManager({ providerId }: { providerId: string }) {
                           key={index}
                           className={`p-2 rounded-md text-xs ${
                             slot.status === 'available' 
-                              ? 'bg-primary/10 text-primary border border-primary/20' 
+                              ? 'bg-primary/10 text-primary shadow-sm' 
                               : slot.status === 'break'
-                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                              : 'bg-destructive/10 text-destructive border border-destructive/20'
+                              ? 'bg-amber-50 text-amber-700 shadow-sm'
+                              : 'bg-destructive/10 text-destructive shadow-sm'
                           }`}
                         >
                           <div className="flex items-center justify-between">
@@ -1074,7 +1074,7 @@ export function NewTimeSlotManager({ providerId }: { providerId: string }) {
                     )}
                   </div>
                   {specificPreviewSlots.length > 0 && (
-                    <div className="pt-3 border-t text-xs text-muted-foreground">
+                    <div className="pt-3 text-xs text-muted-foreground">
                       <div className="flex justify-between">
                         <span>Total: {specificPreviewSlots.length}</span>
                         <span>Available: {specificPreviewSlots.filter(s => s.status === 'available').length}</span>
@@ -1178,7 +1178,7 @@ function AddOverrideForm({ onAdd }: { onAdd: (override: Omit<SpecificOverride, '
               type="date"
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-3 py-2 rounded-lg text-sm bg-input shadow-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
               min={new Date().toISOString().split('T')[0]}
             />
           </div>
@@ -1189,7 +1189,7 @@ function AddOverrideForm({ onAdd }: { onAdd: (override: Omit<SpecificOverride, '
                 type="date"
                 value={formData.endDate}
                 onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-3 py-2 rounded-lg text-sm bg-input shadow-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 min={formData.date || new Date().toISOString().split('T')[0]}
               />
             </div>
@@ -1301,7 +1301,7 @@ function AddOverrideForm({ onAdd }: { onAdd: (override: Omit<SpecificOverride, '
           value={formData.reason}
           onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
           placeholder="e.g., Vacation, Doctor appointment, Conference..."
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          className="w-full px-3 py-2 rounded-lg text-sm bg-input shadow-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
         />
       </div>
 

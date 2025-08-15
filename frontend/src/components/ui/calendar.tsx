@@ -340,7 +340,7 @@ export function EnhancedCalendar({
             {months.map((month, index) => (
               <div
                 key={index}
-                className="p-4 rounded-lg border border-border hover:shadow-md transition-all cursor-pointer bg-card"
+                className="p-4 rounded-lg bg-muted/30 hover:bg-muted/40 shadow-sm transition-all cursor-pointer"
                 onClick={() => {
                   setCurrentDate(month.date)
                   setView('month')
@@ -465,10 +465,10 @@ export function EnhancedCalendar({
                   key={index}
                   onClick={() => handleDayClick(day)}
                   className={`
-                    min-h-[120px] p-3 border border-border rounded-xl transition-all cursor-pointer animate-fade-in
-                    ${day.isCurrentMonth ? 'hover:shadow-lg hover:border-primary/40 bg-card' : 'opacity-40 bg-muted'}
+                    min-h-[120px] p-3 rounded-xl transition-all cursor-pointer animate-fade-in
+                    ${day.isCurrentMonth ? 'hover:shadow-lg bg-card' : 'opacity-40 bg-muted'}
                     ${day.isToday ? 'ring-2 ring-primary bg-primary/5' : ''}
-                    ${selectedDay?.toDateString() === day.date.toDateString() ? 'bg-primary/10 border-primary/50' : ''}
+                    ${selectedDay?.toDateString() === day.date.toDateString() ? 'bg-primary/10 ring-2 ring-primary/40' : ''}
                     ${day.isWeekend && day.isCurrentMonth ? 'bg-muted' : ''}
                   `}
                   style={{ animationDelay: `${index * 10}ms` }}

@@ -272,7 +272,7 @@ export default function ProviderDetailPage() {
                     <CardContent>
                       <div className="space-y-3">
                         {services.map((service) => (
-                          <div key={service.id} className="p-4 rounded-lg border cursor-pointer transition-colors hover:border-primary/50"
+                          <div key={service.id} className="p-4 rounded-lg bg-muted/30 hover:bg-muted/40 shadow-sm cursor-pointer transition"
                             onClick={() => handleServiceSelect(service)}>
                             <div className="flex justify-between items-start">
                               <div>
@@ -372,7 +372,7 @@ export default function ProviderDetailPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg">
+                        <div className="grid grid-cols-2 gap-4 p-4 rounded-lg bg-muted/30 shadow-sm">
                           <div>
                             <p className="text-sm font-medium">Service</p>
                             <p className="text-muted-foreground">{selectedService.name}</p>
@@ -396,7 +396,7 @@ export default function ProviderDetailPage() {
                           <label htmlFor="booking-notes" className="text-sm font-medium">Notes (optional)</label>
                           <textarea id="booking-notes" value={notes} onChange={(e) => setNotes(e.target.value)}
                             placeholder="e.g., specific requests, allergies..."
-                            className="w-full mt-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+                            className="w-full mt-1 px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent shadow-sm bg-background"
                             rows={3}
                           />
                         </div>

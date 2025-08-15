@@ -336,4 +336,37 @@ async def cancel_booking(
     db.commit()
     db.refresh(booking)
 
+    # Attempt to delete customer's calendar event (non-blocking)
+    try:
+        if booking.google_calendar_event_id:
+            customer_user = db.query(User).filter(User.id == booking.customer_id).first()
+            if (
+                customer_user
+                and customer_user.google_calendar_enabled
+                and customer_user.google_calendar_token
+            ):
+                try:
+                    token_data = json.loads(customer_user.google_calendar_token)
+                except Exception:
+                    token_data = None
+
+                if token_data:
+                    try:
+                        deleted = await calendar_service.delete_calendar_event(
+                            token_data=token_data,
+                            event_id=booking.google_calendar_event_id,
+                        )
+                        if deleted:
+                            booking.google_calendar_event_id = None
+                            db.add(booking)
+                            db.commit()
+                            db.refresh(booking)
+                    except Exception as e:
+                        print(
+                            f"Failed to delete Google Calendar event for booking {booking.id}: {e}"
+                        )
+    except Exception as e:
+        # Do not block cancellation if calendar deletion fails
+        print(f"Calendar cleanup error for booking {booking.id}: {e}")
+
     return booking

@@ -54,7 +54,7 @@ export default function LoginPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           {/* Brand / Benefits */}
           <div className="hidden lg:block">
-            <div className="rounded-2xl border border-border bg-card/80 backdrop-blur p-8 shadow-sm">
+            <div className="rounded-2xl bg-card/80 backdrop-blur p-8 shadow-md">
               <div className="flex items-center gap-3 mb-6">
                 <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-sm">
                   <span className="text-white font-bold">T</span>
@@ -129,7 +129,7 @@ export default function LoginPage() {
 
                   <div className="relative my-4">
                     <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t" />
+                      <span className="w-full h-px bg-border" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
                       <span className="bg-background px-2 text-muted-foreground">

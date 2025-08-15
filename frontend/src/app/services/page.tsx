@@ -73,7 +73,7 @@ export default function ServicesPage() {
               <p className="mt-2 text-lg text-muted-foreground">Discover and book appointments with top-rated professionals in your area.</p>
             </div>
 
-            <form onSubmit={handleSearch} className="bg-card p-6 rounded-lg shadow-sm border border-border flex flex-col md:flex-row gap-4 items-center">
+            <form onSubmit={handleSearch} className="bg-card p-6 rounded-lg shadow-md flex flex-col md:flex-row gap-4 items-center">
               <div className="flex-grow w-full">
                 <Input
                   placeholder="Search by business name or service type..."

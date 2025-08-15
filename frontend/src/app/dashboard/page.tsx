@@ -86,7 +86,7 @@ export default function UnifiedDashboard() {
               {recentBookings.length > 0 ? (
                 <div className="space-y-4">
                   {recentBookings.map((booking) => (
-                    <div key={booking.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div key={booking.id} className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/40 shadow-sm transition">
                       <div>
                         <h4 className="font-medium">{booking.service?.name}</h4>
                         <p className="text-sm text-muted-foreground">
