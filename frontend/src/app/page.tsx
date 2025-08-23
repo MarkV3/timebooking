@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui"
 import { useAuth } from "@/contexts/AuthContext"
@@ -169,8 +170,14 @@ export default function Home() {
             </div>
             <div className="relative">
               <div className="rounded-2xl bg-card shadow-xl p-4 lg:p-6">
-                <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-muted to-muted/70 flex items-center justify-center text-muted-foreground">
-                  Preview your schedule here
+                <div className="aspect-[4/3] rounded-xl bg-white border border-border relative overflow-hidden">
+                  <Image
+                    src="/landing_page_2.png"
+                    alt="Schedule preview"
+                    fill
+                    className="object-contain p-4 lg:p-6"
+                    priority
+                  />
                 </div>
               </div>
             </div>
