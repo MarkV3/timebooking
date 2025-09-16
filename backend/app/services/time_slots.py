@@ -11,12 +11,13 @@ calling code – this keeps them fully test-able and avoids hidden side-effects.
 from datetime import datetime, date, time, timedelta, timezone
 from typing import List
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from fastapi import HTTPException, status
 
 from app.models.database import (
     AvailabilityTemplate,
+    AvailabilityOverride,
     TimeSlot,
     Service,
     ServiceProvider,
@@ -111,7 +112,12 @@ def _ensure_timezone_aware(dt: datetime) -> datetime:
 
 
 def generate_time_slots_for_date(
-    provider_id: str, target_date: date, db: Session, *, commit: bool = True
+    provider_id: str,
+    target_date: date,
+    db: Session,
+    *,
+    commit: bool = True,
+    force: bool = False,
 ) -> List[TimeSlot]:
     """Return *persistent* `TimeSlot` rows for the given provider and date.
 
@@ -160,6 +166,15 @@ def generate_time_slots_for_date(
             )
             .first()
         )
+        override: AvailabilityOverride | None = (
+            db.query(AvailabilityOverride)
+            .options(selectinload(AvailabilityOverride.custom_slots))
+            .filter(
+                AvailabilityOverride.provider_id == provider_id,
+                AvailabilityOverride.override_date == target_date,
+            )
+            .first()
+        )
         
         # Use timezone-aware datetime for consistent comparison
         start_of_day = _ensure_timezone_aware(datetime.combine(target_date, time.min))
@@ -175,38 +190,108 @@ def generate_time_slots_for_date(
             .order_by(TimeSlot.start_time)
             .all()
         )
-        
-        # If no template exists (day is disabled) but there are existing slots, 
-        # we need to clean them up if they're not booked
-        if not template:
-            if existing_slots:
-                # Remove only unbooked slots (preserve booked ones for historical data)
-                unbooked_slots = [slot for slot in existing_slots if not slot.is_booked]
-                if unbooked_slots:
-                    for slot in unbooked_slots:
-                        db.delete(slot)
-                    if commit:
-                        try:
-                            db.commit()
-                        except (SQLAlchemyError, IntegrityError) as e:
-                            db.rollback()
-                            raise HTTPException(
-                                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                detail="Database error occurred while cleaning up slots"
-                            )
-                # Return only booked slots (if any) for historical purposes
-                return [slot for slot in existing_slots if slot.is_booked]
-            return []
+        booked_slots = [slot for slot in existing_slots if slot.is_booked]
+        unbooked_slots = [slot for slot in existing_slots if not slot.is_booked]
 
-        # If existing slots match current template, return them
-        if existing_slots:
+        def _finalize() -> List[TimeSlot]:
+            try:
+                if commit:
+                    db.commit()
+                else:
+                    db.flush()
+            except (SQLAlchemyError, IntegrityError):
+                db.rollback()
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Database error occurred while creating time slots"
+                )
+
+            return (
+                db.query(TimeSlot)
+                .filter(
+                    TimeSlot.provider_id == provider_id,
+                    TimeSlot.start_time >= start_of_day,
+                    TimeSlot.start_time < end_of_day,
+                )
+                .order_by(TimeSlot.start_time)
+                .all()
+            )
+
+        def _remove_unbooked() -> None:
+            if not unbooked_slots:
+                return
+            for slot in unbooked_slots:
+                db.delete(slot)
+            unbooked_slots.clear()
+
+        if override:
+            _remove_unbooked()
+
+            available_windows = sorted(
+                [slot for slot in override.custom_slots if slot.is_available],
+                key=lambda slot: slot.start_time,
+            )
+
+            if override.is_unavailable or not available_windows:
+                return _finalize()
+
+            slot_duration_minutes = template.slot_duration if template else 30
+            slot_duration = timedelta(minutes=slot_duration_minutes)
+
+            if slot_duration <= timedelta(0):
+                return _finalize()
+
+            booked_start_times = {slot.start_time for slot in booked_slots}
+            new_slots: list[TimeSlot] = []
+
+            for custom_slot in available_windows:
+                start_dt = _ensure_timezone_aware(datetime.combine(target_date, custom_slot.start_time))
+                end_dt = _ensure_timezone_aware(datetime.combine(target_date, custom_slot.end_time))
+
+                if start_dt >= end_dt:
+                    continue
+
+                current_time = start_dt
+                while current_time + slot_duration <= end_dt:
+                    if current_time in booked_start_times:
+                        booked_start_times.remove(current_time)
+                        current_time += slot_duration
+                        continue
+
+                    new_slots.append(
+                        TimeSlot(
+                            provider_id=provider_id,
+                            start_time=current_time,
+                            end_time=current_time + slot_duration,
+                            is_booked=False,
+                        )
+                    )
+                    current_time += slot_duration
+
+            if new_slots:
+                db.add_all(new_slots)
+
+            return _finalize()
+
+        if not template:
+            if unbooked_slots:
+                _remove_unbooked()
+                return _finalize()
+            return booked_slots
+
+        if existing_slots and not force:
             return existing_slots
+
+        # Regenerate template-driven slots (either force or no existing slots)
+        _remove_unbooked()
 
         slot_duration = timedelta(minutes=template.slot_duration)
         current_time = _ensure_timezone_aware(datetime.combine(target_date, template.start_time))
         end_time = _ensure_timezone_aware(datetime.combine(target_date, template.end_time))
 
-        # Handle break-times (optional)
+        if current_time >= end_time:
+            return _finalize() if unbooked_slots else booked_slots
+
         break_start = (
             _ensure_timezone_aware(datetime.combine(target_date, template.break_start_time))
             if template.break_start_time
@@ -218,10 +303,17 @@ def generate_time_slots_for_date(
             else None
         )
 
+        booked_start_times = {slot.start_time for slot in booked_slots}
         new_slots: list[TimeSlot] = []
+
         while current_time + slot_duration <= end_time:
             if break_start and break_end and break_start <= current_time < break_end:
                 current_time = break_end
+                continue
+
+            if current_time in booked_start_times:
+                booked_start_times.remove(current_time)
+                current_time += slot_duration
                 continue
 
             new_slots.append(
@@ -234,53 +326,11 @@ def generate_time_slots_for_date(
             )
             current_time += slot_duration
 
-        if not new_slots:
-            return []
+        if new_slots:
+            db.add_all(new_slots)
 
-        db.add_all(new_slots)
-        if commit:
-            try:
-                db.commit()
-            except IntegrityError:
-                db.rollback()
-                # If a race-condition occurred and another process already inserted
-                # the slots, simply fetch and return those.
-                return (
-                    db.query(TimeSlot)
-                    .filter(
-                        TimeSlot.provider_id == provider_id,
-                        TimeSlot.start_time >= start_of_day,
-                        TimeSlot.start_time < end_of_day,
-                    )
-                    .order_by(TimeSlot.start_time)
-                    .all()
-                )
-            except SQLAlchemyError as e:
-                db.rollback()
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Database error occurred while creating time slots"
-                )
+        return _finalize()
 
-        # Ensure slots have PKs assigned in the current session
-        try:
-            for slot in new_slots:
-                db.refresh(slot)
-        except SQLAlchemyError:
-            # If refresh fails, re-query to get the persisted slots
-            return (
-                db.query(TimeSlot)
-                .filter(
-                    TimeSlot.provider_id == provider_id,
-                    TimeSlot.start_time >= start_of_day,
-                    TimeSlot.start_time < end_of_day,
-                )
-                .order_by(TimeSlot.start_time)
-                .all()
-            )
-
-        return new_slots
-    
     except HTTPException:
         raise
     except Exception as e:

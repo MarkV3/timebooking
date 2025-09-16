@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { Card, CardContent, Button } from "@/components/ui"
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, X, MessageSquare } from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { Button, Card, CardContent } from "@/components/ui"
+import { ChevronLeft, ChevronRight, Clock, MessageSquare, User, X } from "lucide-react"
 import { parseDateTime, formatTimeSlot, isSameDay, formatDisplayDate } from "@/lib/utils"
 import { type ProviderScheduleSlot } from "@/lib/api"
 
@@ -26,135 +26,90 @@ interface WeekDay {
   slots: ProviderScheduleSlot[]
 }
 
-interface TimeSlot {
-  hour: number
-  timeLabel: string
-  isCurrentHour: boolean
-}
+const INTERVAL_MINUTES = 30
+const ROW_HEIGHT = 48
+const TOTAL_DAY_MINUTES = 24 * 60
 
-// Booking Detail Modal Component
 function BookingDetailModal({ slot, onClose }: BookingDetailModalProps) {
-  // Handle escape key - must be called before early return
   useEffect(() => {
     if (!slot || !slot.booking) return
 
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
         onClose()
       }
     }
-    
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
+
+    document.addEventListener("keydown", handleEscape)
+    return () => document.removeEventListener("keydown", handleEscape)
   }, [slot, onClose])
 
-  if (!slot || !slot.booking || !slot.start_time || !slot.end_time) return null
+  if (!slot || !slot.booking) return null
 
-  let startTime: Date, endTime: Date
+  let startTime: Date
+  let endTime: Date
   try {
     startTime = parseDateTime(slot.start_time)
     endTime = parseDateTime(slot.end_time)
   } catch (error) {
-    console.error('Error parsing slot times:', error)
     return null
   }
 
   return (
-    <div 
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
           onClose()
         }
       }}
     >
-      <div className="bg-card rounded-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto animate-slide-in shadow-2xl">
-        <div className="p-6">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-foreground">Booking Details</h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="h-8 w-8 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+      <div className="max-w-md w-full mx-4 overflow-hidden rounded-xl bg-card shadow-xl">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <h2 className="text-lg font-semibold text-foreground">Booking details</h2>
+          <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="space-y-4 px-6 py-5">
+          <div className="flex items-center gap-3 rounded-lg bg-muted px-4 py-3">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                {formatTimeSlot(startTime)} – {formatTimeSlot(endTime)}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {formatDisplayDate(startTime, "full")}
+              </p>
+            </div>
           </div>
 
-          {/* Booking Information */}
-          <div className="space-y-4">
-            {/* Time */}
-            <div className="flex items-center gap-3 p-3 bg-primary/10 rounded-lg">
-              <Clock className="h-5 w-5 text-primary" />
-              <div>
-                <div className="font-medium text-foreground">
-                  {formatTimeSlot(startTime)} - {formatTimeSlot(endTime)}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {formatDisplayDate(startTime, 'full')}
-                </div>
-              </div>
+          <div className="flex items-center gap-3 rounded-lg bg-muted px-4 py-3">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                {slot.booking.customer_name || "Unknown customer"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {slot.booking.customer_email || "No email provided"}
+              </p>
             </div>
-
-            {/* Customer */}
-            <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-              <User className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <div className="font-medium text-foreground">
-                  {slot.booking.customer_name || 'Unknown Customer'}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {slot.booking.customer_email || 'No email provided'}
-                </div>
-              </div>
-            </div>
-
-            {/* Service */}
-            <div className="p-3 bg-green-50 rounded-lg">
-              <div className="font-medium text-foreground mb-1">
-                {slot.booking.service_name || 'Unknown Service'}
-              </div>
-              {slot.booking.total_price && (
-                <div className="text-sm text-muted-foreground mb-2">
-                  ${slot.booking.total_price.toFixed(2)}
-                </div>
-              )}
-              <div className={`px-2 py-1 rounded text-xs font-medium inline-block ${
-                slot.booking.status === 'confirmed' 
-                  ? 'bg-green-100 text-green-800'
-                  : slot.booking.status === 'cancelled'
-                  ? 'bg-red-100 text-red-800'
-                  : 'bg-yellow-100 text-yellow-800'
-              }`}>
-                {slot.booking.status ? 
-                  slot.booking.status.charAt(0).toUpperCase() + slot.booking.status.slice(1) :
-                  'Unknown Status'
-                }
-              </div>
-            </div>
-
-            {/* Customer Notes/Comments */}
-            {slot.booking.notes && (
-            <div className="p-3 bg-amber-50 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <MessageSquare className="h-4 w-4 text-amber-600" />
-                  <span className="font-medium text-foreground">Customer Notes</span>
-                </div>
-                <p className="text-sm text-gray-700 italic">
-                  "{slot.booking.notes}"
-                </p>
-              </div>
-            )}
           </div>
 
-          {/* Close Button */}
-            <div className="mt-6 flex justify-end">
-            <Button onClick={onClose} variant="outline">
-              Close
-            </Button>
-          </div>
+          {slot.booking.notes && (
+            <div className="rounded-lg bg-muted px-4 py-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                Customer notes
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">{slot.booking.notes}</p>
+            </div>
+          )}
+        </div>
+        <div className="border-t border-border px-6 py-4 text-right">
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
         </div>
       </div>
     </div>
@@ -164,359 +119,273 @@ function BookingDetailModal({ slot, onClose }: BookingDetailModalProps) {
 export function WeeklyCalendarView({ scheduleSlots, currentDate, onDateChange, onRefresh }: WeeklyCalendarViewProps) {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [selectedSlot, setSelectedSlot] = useState<ProviderScheduleSlot | null>(null)
-  const timeIndicatorRef = useRef<HTMLDivElement>(null)
-  const gridRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-  // Update current time every minute
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date())
-    }, 60000) // Update every minute
+    }, 60_000)
 
     return () => clearInterval(interval)
   }, [])
 
-  // Calculate working hours and scroll to start time
   useEffect(() => {
-    if (scheduleSlots.length > 0 && scrollContainerRef.current) {
-      // Find the earliest appointment time across all days
-      const earliestHour = Math.min(
-        ...scheduleSlots.map(slot => {
-          const startTime = parseDateTime(slot.start_time)
-          return startTime.getHours()
-        })
-      )
-      
-      // Start scrolling 1 hour before the earliest appointment, but not before 6 AM
-      const scrollToHour = Math.max(6, earliestHour - 1)
-      
-      // Calculate scroll position (each hour row is 60px min-height)
-      const scrollPosition = scrollToHour * 60
-      
-      // Smooth scroll to the working hours
-      setTimeout(() => {
-        scrollContainerRef.current?.scrollTo({
-          top: scrollPosition,
-          behavior: 'smooth'
-        })
-      }, 100)
-    }
+    if (!scheduleSlots.length) return
+
+    const earliestMinutes = Math.min(
+      ...scheduleSlots.map((slot) => {
+        try {
+          const start = parseDateTime(slot.start_time)
+          return start.getHours() * 60 + start.getMinutes()
+        } catch (error) {
+          return TOTAL_DAY_MINUTES
+        }
+      })
+    )
+
+    const scrollMinutes = Math.max(0, earliestMinutes - 60)
+    const intervalIndex = Math.floor(scrollMinutes / INTERVAL_MINUTES)
+    const scrollPosition = intervalIndex * ROW_HEIGHT
+
+    requestAnimationFrame(() => {
+      scrollContainerRef.current?.scrollTo({ top: scrollPosition, behavior: "smooth" })
+    })
   }, [scheduleSlots])
 
-  // Get the start of the current week (Monday)
   const getWeekStart = (date: Date): Date => {
-    const d = new Date(date)
-    const day = d.getDay()
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Monday as start of week
-    return new Date(d.setDate(diff))
+    const copy = new Date(date)
+    const day = copy.getDay()
+    const diff = copy.getDate() - day + (day === 0 ? -6 : 1)
+    copy.setDate(diff)
+    copy.setHours(0, 0, 0, 0)
+    return copy
   }
 
   const weekStart = getWeekStart(currentDate)
-  
-  // Generate week days
-  const weekDays: WeekDay[] = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date(weekStart)
-    date.setDate(weekStart.getDate() + i)
-    
-    const today = new Date()
-    const isToday = date.toDateString() === today.toDateString()
-    
-    const daySlots = scheduleSlots.filter(slot => 
-      isSameDay(parseDateTime(slot.start_time), date)
-    )
 
-    return {
-      date,
-      dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
-      dayNumber: date.getDate(),
-      isToday,
-      slots: daySlots
-    }
-  })
+  const weekDays: WeekDay[] = useMemo(() => {
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(weekStart)
+      date.setDate(weekStart.getDate() + index)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
 
-  // Generate time slots (24 hours)
-  const timeSlots: TimeSlot[] = Array.from({ length: 24 }, (_, i) => {
-    const hour = i
-    const timeLabel = `${hour.toString().padStart(2, '0')}:00`
-    const isCurrentHour = currentTime.getHours() === hour && 
-                         isSameDay(currentTime, currentDate)
-    
-    return {
-      hour,
-      timeLabel,
-      isCurrentHour
-    }
-  })
+      const slotsForDay = scheduleSlots.filter((slot) => {
+        try {
+          return isSameDay(parseDateTime(slot.start_time), date)
+        } catch (error) {
+          return false
+        }
+      })
 
-  const navigateWeek = (direction: 'prev' | 'next') => {
-    const newDate = new Date(currentDate)
-    newDate.setDate(currentDate.getDate() + (direction === 'next' ? 7 : -7))
-    onDateChange(newDate)
+      return {
+        date,
+        dayName: date.toLocaleDateString("en-US", { weekday: "short" }),
+        dayNumber: date.getDate(),
+        isToday: date.toDateString() === today.toDateString(),
+        slots: slotsForDay,
+      }
+    })
+  }, [scheduleSlots, weekStart])
+
+  const timeSlots = useMemo(() => {
+    return Array.from({ length: (24 * 60) / INTERVAL_MINUTES }, (_, index) => {
+      const totalMinutes = index * INTERVAL_MINUTES
+      const hour = Math.floor(totalMinutes / 60)
+      const minute = totalMinutes % 60
+      return {
+        label: `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`,
+        isHourMarker: minute === 0,
+      }
+    })
+  }, [])
+
+  const navigateWeek = (direction: "prev" | "next") => {
+    const nextDate = new Date(currentDate)
+    nextDate.setDate(currentDate.getDate() + (direction === "next" ? 7 : -7))
+    onDateChange(nextDate)
   }
 
   const goToToday = () => {
     onDateChange(new Date())
   }
 
-  // Get slots for a specific hour and day
-  const getSlotsForHour = (date: Date, hour: number): ProviderScheduleSlot[] => {
-    return scheduleSlots.filter(slot => {
-      const slotStart = parseDateTime(slot.start_time)
-      return isSameDay(slotStart, date) && slotStart.getHours() === hour
-    })
-  }
-
-  // Calculate current time position for the moving indicator
-  const getCurrentTimePosition = (): number => {
+  const currentTimePosition = () => {
     const now = new Date()
-    const hours = now.getHours()
-    const minutes = now.getMinutes()
-    const totalMinutes = hours * 60 + minutes
-    const dayMinutes = 24 * 60
-    return (totalMinutes / dayMinutes) * 100
+    const minutes = now.getHours() * 60 + now.getMinutes()
+    return (minutes / TOTAL_DAY_MINUTES) * 100
   }
 
-  // Check if any day in current week is today
-  const isCurrentWeek = weekDays.some(day => day.isToday)
+  const isCurrentWeek = weekDays.some((day) => day.isToday)
 
   return (
     <>
-    <Card className="shadow-lg border-0 bg-card">
-      <CardContent className="p-6">
-        <div className="space-y-6">
-          {/* Header with Navigation */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => navigateWeek('prev')}
-                className="h-9 w-9 p-0 border-border hover:bg-muted"
-              >
+      <Card className="border border-border/60 shadow-sm">
+        <CardContent className="space-y-6 p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => navigateWeek("prev")}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-2 min-h-[32px]">
-                  <span className="text-2xl font-light text-foreground leading-tight">
-                    {weekStart.toLocaleDateString('en-US', { month: 'short' })} {weekStart.getDate()} - {' '}
-                    {weekStart.getMonth() !== new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000).getMonth() 
-                      ? new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short' }) + ' '
-                      : ''
-                    }
-                    {new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000).getDate()}
-                  </span>
-                  <span className="text-2xl font-light text-muted-foreground leading-tight">
-                    {weekStart.getFullYear()}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-400 mt-2 font-medium tracking-wide uppercase leading-none">Weekly View</p>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Week of</p>
+                <p className="text-lg font-semibold text-foreground">
+                  {formatDisplayDate(weekStart, "monthDay")}{" "}
+                  – {formatDisplayDate(new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000), "monthDay")}
+                </p>
               </div>
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => navigateWeek('next')}
-                className="h-9 w-9 p-0 border-border hover:bg-muted"
-              >
+              <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => navigateWeek("next")}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
-            
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={goToToday}
-                className="border-border hover:bg-muted"
-              >
+              <Button variant="outline" size="sm" onClick={goToToday}>
                 Today
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={onRefresh}
-                className="border-border hover:bg-muted"
-              >
+              <Button variant="outline" size="sm" onClick={onRefresh}>
                 Refresh
               </Button>
             </div>
           </div>
 
-          {/* Calendar Grid */}
-          <div className="relative bg-card rounded-xl overflow-hidden shadow-sm">
-            {/* Scrollable Time Grid */}
-            <div 
+          <div className="relative overflow-hidden rounded-xl border border-border/80 bg-card">
+            <div
               ref={scrollContainerRef}
-              className="relative overflow-y-auto max-h-[600px] scroll-smooth"
-              style={{ scrollbarWidth: 'thin' }}
+              className="max-h-[600px] overflow-y-auto"
+              style={{ scrollbarWidth: "thin" }}
             >
-              {/* Day Headers - moved inside scrollable container */}
-              <div className="grid grid-cols-8 bg-muted border-b border-border sticky top-0 z-10">
-                <div className="p-3 text-center font-medium text-muted-foreground text-sm border-r border-border">
-                  Time
-                </div>
-                {weekDays.map((day) => (
-                  <div 
-                    key={day.date.toISOString()} 
-                    className={`p-3 text-center border-r border-border transition-colors ${
-                      day.isToday 
-                        ? 'bg-primary/10 text-primary font-semibold' 
-                        : 'text-foreground'
-                    }`}
+              <div className="grid min-w-[720px] grid-cols-[72px_repeat(7,minmax(0,1fr))] text-sm">
+                <div className="sticky left-0 z-10 bg-card">
+                  <div
+                    className="grid"
+                    style={{ gridTemplateRows: `repeat(${timeSlots.length}, ${ROW_HEIGHT}px)` }}
                   >
-                    <div className="text-sm font-medium">{day.dayName}</div>
-                    <div className={`text-lg font-bold mt-1 ${
-                      day.isToday ? 'text-primary' : 'text-foreground'
-                    }`}>
-                      {day.dayNumber}
-                    </div>
-                    {day.isToday && (
-                      <div className="text-xs text-blue-600 mt-1">TODAY</div>
-                    )}
+                    {timeSlots.map((slot, index) => (
+                      <div
+                        key={slot.label}
+                        className={`flex items-start justify-end border-b border-border px-2 pt-2 text-[11px] text-muted-foreground ${
+                          slot.isHourMarker ? "font-medium text-foreground" : ""
+                        }`}
+                      >
+                        {slot.isHourMarker ? slot.label : ""}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div className="relative" ref={gridRef}>
-              {/* Current Time Indicator */}
-              {isCurrentWeek && (
-                <div 
-                  className="absolute left-0 right-0 z-20 flex items-center pointer-events-none"
-                  style={{ 
-                    top: `${getCurrentTimePosition()}%`,
-                    transform: 'translateY(-50%)'
-                  }}
-                >
-                  <div className="w-16 bg-red-500 text-white text-xs px-2 py-1 rounded-r-full font-medium">
-                    {currentTime.toLocaleTimeString('en-US', { 
-                      hour: '2-digit', 
-                      minute: '2-digit',
-                      hour12: false 
-                    })}
-                  </div>
-                  <div className="flex-1 h-0.5 bg-red-500"></div>
                 </div>
-              )}
 
-              {/* Time Rows */}
-              <div className="divide-y">
-                {timeSlots.map((timeSlot) => (
-                  <div key={timeSlot.hour} className="grid grid-cols-8 min-h-[60px]">
-                    {/* Time Label */}
-                    <div className={`p-3 text-right text-sm border-r border-border flex items-start justify-end ${
-                      timeSlot.isCurrentHour 
-                        ? 'bg-red-50 text-red-700 font-medium' 
-                        : 'text-muted-foreground'
-                    }`}>
-                      <span className="mt-1">{timeSlot.timeLabel}</span>
+                {weekDays.map((day) => (
+                  <div key={day.date.toISOString()} className="relative border-l border-border/60">
+                    <div className="border-b border-border/80 bg-muted/70 px-3 py-3 text-center text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      <span className="block text-sm font-semibold text-foreground">{day.dayName}</span>
+                      <span className={`text-xs ${day.isToday ? "text-primary" : "text-muted-foreground"}`}>
+                        {day.dayNumber}
+                      </span>
                     </div>
+                    <div className="relative">
+                      <div
+                        className="grid"
+                        style={{ gridTemplateRows: `repeat(${timeSlots.length}, ${ROW_HEIGHT}px)` }}
+                      >
+                        {timeSlots.map((_, index) => (
+                          <div
+                            key={`${day.date.toISOString()}-${index}`}
+                            className={`border-b border-border/40 ${
+                              index % 2 === 0 ? "bg-background" : "bg-muted/40"
+                            } ${day.isToday ? "bg-primary/5" : ""}`}
+                          />
+                        ))}
+                      </div>
 
-                    {/* Day Columns */}
-                    {weekDays.map((day) => {
-                      const hourSlots = getSlotsForHour(day.date, timeSlot.hour)
-                      
-                      return (
-                        <div 
-                          key={`${day.date.toISOString()}-${timeSlot.hour}`}
-                          className={`border-r border-border p-1 min-h-[60px] relative ${
-                            day.isToday 
-                              ? 'bg-primary/10' 
-                              : timeSlot.hour % 2 === 0 
-                                ? 'bg-muted' 
-                                : 'bg-card'
-                          }`}
-                        >
-                          {hourSlots.map((slot) => {
-                            const startTime = parseDateTime(slot.start_time)
-                            const endTime = parseDateTime(slot.end_time)
-                            const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60) // minutes
-                            const startMinute = startTime.getMinutes()
-                            
-                            return (
-                              <div
-                                key={slot.id}
-                                className={`absolute left-1 right-1 rounded-md p-1 text-xs transition-all hover:shadow-md ${
-                                  slot.is_booked
-                                    ? 'bg-red-100 border border-red-200 text-red-800 hover:bg-red-200 cursor-pointer'
-                                    : 'bg-green-100 border border-green-200 text-green-800 cursor-default'
-                                }`}
-                                style={{
-                                  top: `${(startMinute / 60) * 100}%`,
-                                  height: `${Math.min((duration / 60) * 100, 100 - (startMinute / 60) * 100)}%`
-                                }}
-                                title={`${formatTimeSlot(startTime)} - ${formatTimeSlot(endTime)}${
-                                  slot.is_booked ? ` (${slot.booking?.customer_name})` : ' (Available)'
-                                }`}
-                                onClick={() => {
-                                  if (slot.is_booked && slot.booking) {
-                                    setSelectedSlot(slot)
-                                  }
-                                }}
-                              >
-                                <div className="flex items-center gap-1">
-                                  {slot.is_booked ? (
-                                    <User className="h-3 w-3 flex-shrink-0" />
-                                  ) : (
-                                    <Clock className="h-3 w-3 flex-shrink-0" />
-                                  )}
-                                  <span className="truncate font-medium">
-                                    {slot.is_booked 
-                                      ? slot.booking?.customer_name || 'Booked' 
-                                      : 'Available'
-                                    }
-                                  </span>
-                                </div>
-                                <div className="text-xs opacity-75 mt-0.5">
-                                  {formatTimeSlot(startTime)} - {formatTimeSlot(endTime)}
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )
-                    })}
+                      <div className="pointer-events-none absolute inset-0">
+                        {isCurrentWeek && day.isToday && (
+                          <div
+                            className="absolute left-0 right-0"
+                            style={{ top: `${currentTimePosition()}%` }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="h-px flex-1 bg-rose-500" />
+                              <span className="pointer-events-auto rounded-full bg-rose-500 px-2 py-0.5 text-[11px] font-medium text-white">
+                                {currentTime.toLocaleTimeString("en-US", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: false,
+                                })}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="absolute inset-0">
+                        {day.slots.map((slot) => {
+                          let startMinutes = 0
+                          let endMinutes = 0
+                          try {
+                            const start = parseDateTime(slot.start_time)
+                            const end = parseDateTime(slot.end_time)
+                            startMinutes = start.getHours() * 60 + start.getMinutes()
+                            endMinutes = end.getHours() * 60 + end.getMinutes()
+                          } catch (error) {
+                            return null
+                          }
+
+                          const duration = Math.max(endMinutes - startMinutes, INTERVAL_MINUTES / 2)
+                          const topPercent = (startMinutes / TOTAL_DAY_MINUTES) * 100
+                          const maxHeight = 100 - topPercent
+                          const heightPercent = Math.min((duration / TOTAL_DAY_MINUTES) * 100, maxHeight)
+                          const minHeightPercent = (INTERVAL_MINUTES / TOTAL_DAY_MINUTES) * 100
+                          const finalHeight = Math.max(heightPercent, minHeightPercent)
+
+                          return (
+                            <button
+                              key={slot.id}
+                              type="button"
+                              className={`group absolute left-2 right-2 rounded-md border px-3 py-2 text-left text-xs shadow-sm transition-colors ${
+                                slot.is_booked
+                                  ? "border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100"
+                                  : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                              }`}
+                              style={{ top: `${topPercent}%`, height: `${finalHeight}%` }}
+                              onClick={() => {
+                                if (slot.is_booked && slot.booking) {
+                                  setSelectedSlot(slot)
+                                }
+                              }}
+                            >
+                              <p className="font-medium">
+                                {slot.is_booked ? slot.booking?.customer_name ?? "Booked" : "Available"}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground">
+                                {formatTimeSlot(parseDateTime(slot.start_time))} – {formatTimeSlot(parseDateTime(slot.end_time))}
+                              </p>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
-            </div>
           </div>
 
-          {/* Legend and Scroll Hint */}
-          <div className="flex flex-col items-center gap-3">
-            <div className="flex justify-center gap-6 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-green-100 border border-green-200" />
-                <span className="text-foreground">Available</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-red-100 border border-red-200" />
-                <span className="text-foreground">Booked</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-0.5 bg-red-500" />
-                <span className="text-foreground">Current Time</span>
-              </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-4">
+              <span className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded bg-emerald-200" /> Available
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded bg-rose-200" /> Booked
+              </span>
             </div>
-            <div className="text-xs text-muted-foreground flex items-center gap-1">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span>Scroll within the calendar to see full 24-hour timeline</span>
-            </div>
+            <p>Scroll to explore the full day</p>
           </div>
-        </div>
-      </CardContent>
-    </Card>
-    
-    {/* Booking Detail Modal */}
-    {selectedSlot && selectedSlot.booking && (
-      <BookingDetailModal 
-        slot={selectedSlot} 
-        onClose={() => setSelectedSlot(null)} 
-      />
-    )}
+        </CardContent>
+      </Card>
+
+      {selectedSlot && selectedSlot.booking && (
+        <BookingDetailModal slot={selectedSlot} onClose={() => setSelectedSlot(null)} />
+      )}
     </>
   )
-} 
+}

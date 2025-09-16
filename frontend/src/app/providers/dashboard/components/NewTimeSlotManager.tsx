@@ -55,6 +55,17 @@ interface PreviewSlot {
   reason?: string
 }
 
+interface BackendAvailabilityTemplate {
+  id: string
+  day_of_week: number
+  start_time: string
+  end_time: string
+  slot_duration: number
+  break_start_time?: string | null
+  break_end_time?: string | null
+  is_enabled: boolean
+}
+
 // Constants
 const daysOfWeek = [
   { value: 1, label: "Mon", name: "Monday" },
@@ -80,7 +91,12 @@ const slotDurationOptions = [
   { value: "60", label: "60 min" }
 ]
 
-export function NewTimeSlotManager({ providerId }: { providerId: string }) {
+interface NewTimeSlotManagerProps {
+  providerId: string
+  onScheduleChange?: () => void
+}
+
+export function NewTimeSlotManager({ providerId, onScheduleChange }: NewTimeSlotManagerProps) {
   const { user } = useAuth()
   
   // State for recurring schedule
@@ -92,8 +108,11 @@ export function NewTimeSlotManager({ providerId }: { providerId: string }) {
     dayOverrides: []
   })
 
+  const [existingTemplates, setExistingTemplates] = useState<BackendAvailabilityTemplate[]>([])
+
   // State for specific overrides
   const [specificOverrides, setSpecificOverrides] = useState<SpecificOverride[]>([])
+  const [overridesMarkedForDeletion, setOverridesMarkedForDeletion] = useState<string[]>([])
   
   // Preview states
   const [previewDay, setPreviewDay] = useState<number>(1) // Monday
@@ -116,15 +135,6 @@ export function NewTimeSlotManager({ providerId }: { providerId: string }) {
     }
   }, [providerId])
 
-  // Track changes to update preview immediately
-  useEffect(() => {
-    // Only track changes after initial data has been loaded
-    if (hasLoadedInitialData) {
-      // Mark as having unsaved changes only after initial load
-      setHasUnsavedChanges(true)
-    }
-  }, [recurringSchedule, hasLoadedInitialData])
-
   // Load schedule data from API
   const loadScheduleData = async () => {
     if (!providerId) {
@@ -141,6 +151,9 @@ export function NewTimeSlotManager({ providerId }: { providerId: string }) {
         apiService.getAvailabilityTemplates(providerId),
         apiService.getAvailabilityOverrides(providerId)
       ])
+
+      setExistingTemplates(templates)
+      setOverridesMarkedForDeletion([])
 
       // Convert backend data to our format
       if (templates.length > 0) {
@@ -167,6 +180,8 @@ export function NewTimeSlotManager({ providerId }: { providerId: string }) {
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load schedule data')
+      setExistingTemplates([])
+      setOverridesMarkedForDeletion([])
       
       // Set defaults even if loading fails, but only if we haven't loaded data before
       if (!hasLoadedInitialData) {
@@ -362,7 +377,7 @@ export function NewTimeSlotManager({ providerId }: { providerId: string }) {
       while (currentDate <= endDate) {
         newOverrides.push({
           ...override,
-          id: `${Date.now()}-${currentDate.getTime()}`,
+          id: `temp-${Date.now()}-${currentDate.getTime()}`,
           date: currentDate.toISOString().split('T')[0],
           endDate: undefined // Individual overrides don't need endDate
         })
@@ -372,13 +387,29 @@ export function NewTimeSlotManager({ providerId }: { providerId: string }) {
       // Single day override
       newOverrides.push({
         ...override,
-        id: Date.now().toString()
+        id: `temp-${Date.now()}`
       })
     }
     
     // Remove any existing overrides for these dates and add new ones
     setSpecificOverrides(prev => {
       const datesToReplace = newOverrides.map(o => o.date)
+      const replaced = prev.filter(o => datesToReplace.includes(o.date))
+
+      if (replaced.length) {
+        const persistedIds = replaced
+          .filter(o => !o.id.startsWith('temp-'))
+          .map(o => o.id)
+
+        if (persistedIds.length) {
+          setOverridesMarkedForDeletion(current => {
+            const next = new Set(current)
+            persistedIds.forEach(id => next.add(id))
+            return Array.from(next)
+          })
+        }
+      }
+
       const filtered = prev.filter(o => !datesToReplace.includes(o.date))
       return [...filtered, ...newOverrides]
     })
@@ -388,6 +419,11 @@ export function NewTimeSlotManager({ providerId }: { providerId: string }) {
   // Remove specific override
   const removeSpecificOverride = (id: string) => {
     setSpecificOverrides(prev => prev.filter(o => o.id !== id))
+    if (!id.startsWith('temp-')) {
+      setOverridesMarkedForDeletion(current => (
+        current.includes(id) ? current : [...current, id]
+      ))
+    }
     setHasUnsavedChanges(true)
   }
 
@@ -399,34 +435,93 @@ export function NewTimeSlotManager({ providerId }: { providerId: string }) {
       setSaveLoading(true)
       setError('')
 
-      // Convert our data to backend format
-      const templates = convertScheduleToTemplates(recurringSchedule)
-      const overrides = convertSpecificToOverrides(specificOverrides)
+      const desiredTemplateMap = new Map<number, ReturnType<typeof buildTemplatePayload>>()
+      for (const day of recurringSchedule.enabledDays) {
+        desiredTemplateMap.set(day, buildTemplatePayload(recurringSchedule, day))
+      }
 
-      // Save templates first
-      for (const template of templates) {
-        try {
-          await apiService.createAvailabilityTemplate(providerId, template)
-        } catch (err) {
-          // If it already exists, update it
-          // In a real app, we'd track IDs properly
-          console.warn('Template may already exist, attempting update:', err)
+      const existingTemplateMap = new Map<number, BackendAvailabilityTemplate>()
+      existingTemplates.forEach(template => {
+        existingTemplateMap.set(template.day_of_week, template)
+      })
+
+      for (const [day, payload] of desiredTemplateMap.entries()) {
+        const existing = existingTemplateMap.get(day)
+
+        if (existing) {
+          const updates: Record<string, any> = {}
+
+          if (!existing.is_enabled) {
+            updates.is_enabled = true
+          }
+
+          const existingStart = stripSeconds(existing.start_time)
+          const existingEnd = stripSeconds(existing.end_time)
+          const desiredBreakStart = payload.break_start_time ?? undefined
+          const desiredBreakEnd = payload.break_end_time ?? undefined
+          const existingBreakStart = existing.break_start_time ? stripSeconds(existing.break_start_time) : undefined
+          const existingBreakEnd = existing.break_end_time ? stripSeconds(existing.break_end_time) : undefined
+
+          if (existingStart !== payload.start_time) {
+            updates.start_time = payload.start_time
+          }
+          if (existingEnd !== payload.end_time) {
+            updates.end_time = payload.end_time
+          }
+          if (existing.slot_duration !== payload.slot_duration) {
+            updates.slot_duration = payload.slot_duration
+          }
+          if (existingBreakStart !== desiredBreakStart) {
+            updates.break_start_time = payload.break_start_time ?? null
+          }
+          if (existingBreakEnd !== desiredBreakEnd) {
+            updates.break_end_time = payload.break_end_time ?? null
+          }
+
+          if (Object.keys(updates).length > 0) {
+            await apiService.updateAvailabilityTemplate(providerId, existing.id, updates)
+          }
+        } else {
+          await apiService.createAvailabilityTemplate(providerId, {
+            ...payload,
+            is_enabled: true
+          })
         }
       }
 
-      // Save overrides
+      const enabledDaySet = new Set(recurringSchedule.enabledDays)
+      for (const template of existingTemplates) {
+        if (!enabledDaySet.has(template.day_of_week) && template.is_enabled) {
+          await apiService.updateAvailabilityTemplate(providerId, template.id, { is_enabled: false })
+        }
+      }
+
+      const overrides = convertSpecificToOverrides(specificOverrides)
       for (const override of overrides) {
         try {
-          if (override.id && override.id !== 'new') {
+          if (override.id && !override.id.startsWith('temp-')) {
             await apiService.updateAvailabilityOverride(providerId, override.id, override)
           } else {
-            await apiService.createAvailabilityOverride(providerId, override)
+            await apiService.createAvailabilityOverride(providerId, { ...override, id: undefined })
           }
         } catch (err) {
           console.warn('Error saving override:', err)
         }
       }
 
+      if (overridesMarkedForDeletion.length > 0) {
+        for (const overrideId of overridesMarkedForDeletion) {
+          try {
+            await apiService.deleteAvailabilityOverride(providerId, overrideId)
+          } catch (err) {
+            console.warn('Error deleting override:', err)
+          }
+        }
+        setOverridesMarkedForDeletion([])
+      }
+
+      await loadScheduleData()
+      onScheduleChange?.()
       setHasUnsavedChanges(false)
       // Could show success message here
 
@@ -437,20 +532,29 @@ export function NewTimeSlotManager({ providerId }: { providerId: string }) {
     }
   }
 
+  const buildTemplatePayload = (schedule: RecurringSchedule, dayOfWeek: number) => {
+    const dayOverride = schedule.dayOverrides.find(d => d.dayOfWeek === dayOfWeek)
+    const breakStart = dayOverride?.breakTime?.startTime ?? schedule.breakTime?.startTime ?? null
+    const breakEnd = dayOverride?.breakTime?.endTime ?? schedule.breakTime?.endTime ?? null
+
+    return {
+      day_of_week: dayOfWeek,
+      start_time: dayOverride?.startTime || schedule.defaultStartTime,
+      end_time: dayOverride?.endTime || schedule.defaultEndTime,
+      slot_duration: dayOverride?.slotDuration || schedule.defaultSlotDuration,
+      break_start_time: breakStart,
+      break_end_time: breakEnd
+    }
+  }
+
   // Convert our schedule format to backend templates
   const convertScheduleToTemplates = (schedule: RecurringSchedule) => {
     return daysOfWeek
       .filter(day => schedule.enabledDays.includes(day.value)) // Only create templates for enabled days
       .map(day => {
-        const dayOverride = schedule.dayOverrides.find(d => d.dayOfWeek === day.value)
-        
+        const payload = buildTemplatePayload(schedule, day.value)
         return {
-          day_of_week: day.value,
-          start_time: dayOverride?.startTime || schedule.defaultStartTime,
-          end_time: dayOverride?.endTime || schedule.defaultEndTime,
-          slot_duration: dayOverride?.slotDuration || schedule.defaultSlotDuration,
-          break_start_time: dayOverride?.breakTime?.startTime || schedule.breakTime?.startTime,
-          break_end_time: dayOverride?.breakTime?.endTime || schedule.breakTime?.endTime,
+          ...payload,
           is_enabled: true
         }
       })
@@ -459,7 +563,7 @@ export function NewTimeSlotManager({ providerId }: { providerId: string }) {
   // Convert our specific overrides to backend format
   const convertSpecificToOverrides = (overrides: SpecificOverride[]) => {
     return overrides.map(override => ({
-      id: override.id === Date.now().toString() ? undefined : override.id, // New items don't have real IDs
+      id: override.id && override.id.startsWith('temp-') ? undefined : override.id,
       override_date: override.date,
       is_unavailable: override.type === 'unavailable',
       reason: override.reason,
@@ -1320,4 +1424,3 @@ function AddOverrideForm({ onAdd }: { onAdd: (override: Omit<SpecificOverride, '
     </div>
   )
 }
-

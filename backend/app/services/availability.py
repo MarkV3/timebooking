@@ -4,7 +4,7 @@ This module handles all business logic for availability templates and overrides,
 including CRUD operations and validation.
 """
 
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -27,10 +27,127 @@ from app.models.availability import (
     AvailabilityResponse,
     BulkAvailabilityResponse,
 )
+from app.services.time_slots import generate_time_slots_for_date
 
 
 class AvailabilityService:
     """Service class for availability management operations."""
+
+    _SYNC_LOOKAHEAD_DAYS = 120  # limit how far future slot updates run
+
+    @staticmethod
+    def _template_weekday_to_python(day_of_week: int) -> int:
+        """Convert template weekday (0=Sunday) to Python weekday (0=Monday)."""
+        return 6 if day_of_week == 0 else day_of_week - 1
+
+    @staticmethod
+    def _ensure_timezone_aware(dt: datetime) -> datetime:
+        """Ensure a datetime is timezone-aware by defaulting to UTC."""
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt
+
+    @staticmethod
+    def _day_bounds(target_date: date) -> tuple[datetime, datetime]:
+        start = AvailabilityService._ensure_timezone_aware(datetime.combine(target_date, time.min))
+        end = start + timedelta(days=1)
+        return start, end
+
+    @staticmethod
+    def _day_has_bookings(db: Session, provider_id: str, day_start: datetime, day_end: datetime) -> bool:
+        return (
+            db.query(TimeSlot.id)
+            .filter(
+                TimeSlot.provider_id == provider_id,
+                TimeSlot.start_time >= day_start,
+                TimeSlot.start_time < day_end,
+                TimeSlot.is_booked.is_(True),
+            )
+            .first()
+            is not None
+        )
+
+    @staticmethod
+    def _sync_future_time_slots(
+        db: Session,
+        provider_id: str,
+        day_of_week: int,
+        template: Optional[AvailabilityTemplate],
+        *,
+        lookahead_days: Optional[int] = None,
+    ) -> int:
+        """Regenerate future slots after a template change.
+
+        Updates start on the first occurrence of the weekday without booked
+        appointments; subsequent occurrences are also refreshed while skipping
+        days that later receive bookings.
+        """
+
+        if lookahead_days is None:
+            lookahead_days = AvailabilityService._SYNC_LOOKAHEAD_DAYS
+
+        if lookahead_days <= 0:
+            return 0
+
+        today = date.today()
+        target_weekday = AvailabilityService._template_weekday_to_python(day_of_week)
+        days_until_target = (target_weekday - today.weekday()) % 7
+        first_candidate = today + timedelta(days=days_until_target)
+        horizon_end = today + timedelta(days=lookahead_days)
+
+        candidate = first_candidate
+        first_effective_date: Optional[date] = None
+
+        while candidate <= horizon_end:
+            day_start, day_end = AvailabilityService._day_bounds(candidate)
+            if not AvailabilityService._day_has_bookings(db, provider_id, day_start, day_end):
+                first_effective_date = candidate
+                break
+            candidate += timedelta(days=7)
+
+        if first_effective_date is None:
+            return 0
+
+        updated_dates = 0
+        current_date = first_effective_date
+
+        while current_date <= horizon_end:
+            day_start, day_end = AvailabilityService._day_bounds(current_date)
+
+            if AvailabilityService._day_has_bookings(db, provider_id, day_start, day_end):
+                current_date += timedelta(days=7)
+                continue
+
+            db.query(TimeSlot).filter(
+                TimeSlot.provider_id == provider_id,
+                TimeSlot.start_time >= day_start,
+                TimeSlot.start_time < day_end,
+                TimeSlot.is_booked.is_(False),
+            ).delete(synchronize_session=False)
+
+            if template and template.is_enabled:
+                generate_time_slots_for_date(
+                    provider_id,
+                    current_date,
+                    db,
+                    commit=False,
+                    force=True
+                )
+
+            updated_dates += 1
+            current_date += timedelta(days=7)
+
+        return updated_dates
+
+    @staticmethod
+    def _sync_override_date(db: Session, provider_id: str, target_date: date) -> None:
+        generate_time_slots_for_date(
+            provider_id,
+            target_date,
+            db,
+            commit=False,
+            force=True
+        )
 
     @staticmethod
     def validate_provider_exists(db: Session, provider_id: str) -> ServiceProvider:
@@ -118,9 +235,21 @@ class AvailabilityService:
                 **template_data.model_dump()
             )
             db.add(template)
+            db.flush()
+
+            AvailabilityService._sync_future_time_slots(
+                db,
+                provider_id,
+                template.day_of_week,
+                template
+            )
+
             db.commit()
             db.refresh(template)
             return template
+        except HTTPException:
+            db.rollback()
+            raise
         except SQLAlchemyError as e:
             db.rollback()
             raise HTTPException(
@@ -162,11 +291,36 @@ class AvailabilityService:
         try:
             for field, value in update_data.items():
                 setattr(template, field, value)
-            
+
+            db.flush()
+
+            relevant_fields = {
+                "start_time",
+                "end_time",
+                "slot_duration",
+                "break_start_time",
+                "break_end_time",
+                "is_enabled",
+            }
+
+            if update_data.keys() & relevant_fields:
+                AvailabilityService._sync_future_time_slots(
+                    db, provider_id, template.day_of_week, template
+                )
+
             db.commit()
             db.refresh(template)
             return template
+        except HTTPException:
+            db.rollback()
+            raise
         except SQLAlchemyError:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update availability template"
+            )
+        except Exception:
             db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -190,10 +344,26 @@ class AvailabilityService:
             )
 
         try:
+            day_of_week = template.day_of_week
             db.delete(template)
+            db.flush()
+
+            AvailabilityService._sync_future_time_slots(
+                db, provider_id, day_of_week, None
+            )
+
             db.commit()
             return True
+        except HTTPException:
+            db.rollback()
+            raise
         except SQLAlchemyError:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to delete availability template"
+            )
+        except Exception:
             db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -255,9 +425,15 @@ class AvailabilityService:
                 )
                 db.add(custom_slot)
 
+            db.flush()
+            AvailabilityService._sync_override_date(db, provider_id, override.override_date)
+
             db.commit()
             db.refresh(override)
             return override
+        except HTTPException:
+            db.rollback()
+            raise
         except SQLAlchemyError:
             db.rollback()
             raise HTTPException(
@@ -288,6 +464,7 @@ class AvailabilityService:
 
         try:
             update_data = override_data.model_dump(exclude_unset=True)
+            original_date = override.override_date
             
             # Handle custom slots update
             if 'custom_slots' in update_data:
@@ -312,10 +489,18 @@ class AvailabilityService:
             # Update other fields
             for field, value in update_data.items():
                 setattr(override, field, value)
-            
+
+            db.flush()
+            AvailabilityService._sync_override_date(db, provider_id, override.override_date)
+            if original_date != override.override_date:
+                AvailabilityService._sync_override_date(db, provider_id, original_date)
+
             db.commit()
             db.refresh(override)
             return override
+        except HTTPException:
+            db.rollback()
+            raise
         except SQLAlchemyError:
             db.rollback()
             raise HTTPException(
@@ -345,9 +530,17 @@ class AvailabilityService:
                 CustomTimeSlot.availability_override_id == override_id
             ).delete()
             
+            override_date = override.override_date
             db.delete(override)
+            db.flush()
+
+            AvailabilityService._sync_override_date(db, provider_id, override_date)
+
             db.commit()
             return True
+        except HTTPException:
+            db.rollback()
+            raise
         except SQLAlchemyError:
             db.rollback()
             raise HTTPException(
@@ -362,10 +555,8 @@ class AvailabilityService:
         request: BulkAvailabilityRequest
     ) -> BulkAvailabilityResponse:
         """Generate available time slots for a date range."""
-        from app.services.time_slots import generate_time_slots_for_date
-        
         AvailabilityService.validate_provider_exists(db, provider_id)
-        
+
         if request.start_date > request.end_date:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

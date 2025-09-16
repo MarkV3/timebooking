@@ -1,276 +1,456 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui"
+import { useState, useEffect, useMemo } from "react"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui"
 import { Button } from "@/components/ui"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { AvailabilityManager } from "./components/AvailabilityManager"
 import { NewTimeSlotManager } from "./components/NewTimeSlotManager"
-import { apiService } from "@/lib/api"
+import { apiService, type ServiceProvider } from "@/lib/api"
 import { useAuth } from "@/contexts/AuthContext"
 import { parseDateTime, formatTimeSlot, formatDisplayDate } from "@/lib/utils"
-import { ServiceProvider } from "@/lib/api"
+
+interface BookingMetric {
+  upcoming: number
+  completed: number
+  revenueThisMonth: number
+}
 
 export default function ProviderDashboard() {
-  const [activeTab, setActiveTab] = useState("availability")
+  const { user } = useAuth()
+  const [activeTab, setActiveTab] = useState("overview")
   const [bookings, setBookings] = useState<any[]>([])
   const [services, setServices] = useState<any[]>([])
   const [provider, setProvider] = useState<ServiceProvider | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const { user } = useAuth()
+  const [bookingsLoading, setBookingsLoading] = useState(false)
+  const [bookingsLoaded, setBookingsLoaded] = useState(false)
+  const [servicesLoading, setServicesLoading] = useState(false)
+  const [servicesLoaded, setServicesLoaded] = useState(false)
+  const [error, setError] = useState("")
+  const [scheduleRevision, setScheduleRevision] = useState(0)
 
   useEffect(() => {
-    if (user?.id) {
-      const fetchProvider = async () => {
-        try {
-          const providerData = await apiService.getProviderByUserId(user.id);
-          setProvider(providerData);
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'Failed to load provider data');
-        }
-      };
-      fetchProvider();
+    if (!user?.id) return
+
+    const loadProvider = async () => {
+      try {
+        const providerData = await apiService.getProviderByUserId(user.id)
+        setProvider(providerData)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load provider data")
+      }
     }
-  }, [user]);
+
+    loadProvider()
+  }, [user])
 
   useEffect(() => {
-    if (activeTab === 'bookings') {
-      loadBookings()
-    } else if (activeTab === 'services') {
-      loadServices()
-    }
-  }, [activeTab])
+    if (!user?.user_type) return
 
-  const loadBookings = async () => {
+    if (activeTab === "overview" || activeTab === "bookings") {
+      void loadBookings()
+    }
+    if (activeTab === "overview" || activeTab === "services") {
+      void loadServices()
+    }
+  }, [activeTab, user?.user_type])
+
+  const loadBookings = async (force = false) => {
+    if (bookingsLoading || (!force && bookingsLoaded)) return
+
     try {
-      setLoading(true)
+      setBookingsLoading(true)
       const data = await apiService.getMyBookings()
       setBookings(data)
+      setBookingsLoaded(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load bookings')
+      setError(err instanceof Error ? err.message : "Failed to load bookings")
     } finally {
-      setLoading(false)
+      setBookingsLoading(false)
     }
   }
 
-  const loadServices = async () => {
+  const loadServices = async (force = false) => {
+    if (servicesLoading || (!force && servicesLoaded)) return
+
     try {
-      setLoading(true)
+      setServicesLoading(true)
       const data = await apiService.getMyServices()
       setServices(data)
+      setServicesLoaded(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load services')
+      setError(err instanceof Error ? err.message : "Failed to load services")
     } finally {
-      setLoading(false)
+      setServicesLoading(false)
     }
   }
 
-  const formatDateTime = (dateTime: string) => {
-    const date = parseDateTime(dateTime)
-    return `${formatDisplayDate(date, 'weekday')} ${formatTimeSlot(date)}`
-  }
+  const metrics = useMemo<BookingMetric>(() => {
+    if (!bookings.length) {
+      return {
+        upcoming: 0,
+        completed: 0,
+        revenueThisMonth: 0,
+      }
+    }
+
+    const now = new Date()
+    const upcoming = bookings.filter((booking: any) => {
+      try {
+        const start = parseDateTime(booking.appointment_start_time)
+        return start >= now && booking.status !== "cancelled"
+      } catch (error) {
+        return false
+      }
+    }).length
+
+    const completed = bookings.filter((booking: any) => booking.status === "completed").length
+
+    const revenueThisMonth = bookings.reduce((total: number, booking: any) => {
+      try {
+        if (booking.status === "cancelled") return total
+        const start = parseDateTime(booking.appointment_start_time)
+        const sameMonth =
+          start.getMonth() === now.getMonth() && start.getFullYear() === now.getFullYear()
+        if (!sameMonth) return total
+        const price = typeof booking.total_price === "number" ? booking.total_price : Number(booking.total_price)
+        return total + (Number.isFinite(price) ? price : 0)
+      } catch (error) {
+        return total
+      }
+    }, 0)
+
+    return {
+      upcoming,
+      completed,
+      revenueThisMonth,
+    }
+  }, [bookings])
+
+  const upcomingBookings = useMemo(() => {
+    if (!bookings.length) return []
+
+    const now = new Date()
+
+    return bookings
+      .map((booking: any) => {
+        try {
+          const start = parseDateTime(booking.appointment_start_time)
+          const end = parseDateTime(booking.appointment_end_time)
+          return { ...booking, __start: start, __end: end }
+        } catch (error) {
+          return null
+        }
+      })
+      .filter((booking): booking is any & { __start: Date; __end: Date } => Boolean(booking) && booking.__start >= now)
+      .sort((a, b) => a.__start.getTime() - b.__start.getTime())
+  }, [bookings])
 
   const formatAppointmentDateTime = (startTime: string, endTime: string) => {
-    const start = parseDateTime(startTime)
-    const end = parseDateTime(endTime)
-    const datePart = formatDisplayDate(start, 'weekday')
-    const timePart = `${formatTimeSlot(start)} - ${formatTimeSlot(end)}`
-    return `${datePart} ${timePart}`
+    try {
+      const start = parseDateTime(startTime)
+      const end = parseDateTime(endTime)
+      const datePart = formatDisplayDate(start, "weekday")
+      const timePart = `${formatTimeSlot(start)} – ${formatTimeSlot(end)}`
+      return `${datePart} ${timePart}`
+    } catch (error) {
+      return startTime
+    }
   }
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 0,
     }).format(price)
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusStyles = (status: string) => {
     switch (status) {
-      case 'confirmed': return 'text-green-600 bg-green-50'
-      case 'cancelled': return 'text-red-600 bg-red-50'
-      case 'completed': return 'text-blue-600 bg-blue-50'
-      default: return 'text-gray-600 bg-gray-50'
+      case "confirmed":
+        return "bg-emerald-100 text-emerald-700"
+      case "cancelled":
+        return "bg-rose-100 text-rose-700"
+      case "completed":
+        return "bg-blue-100 text-blue-700"
+      default:
+        return "bg-muted text-muted-foreground"
     }
   }
 
   return (
-    <ProtectedRoute allowedUserTypes={['service_provider']}>
+    <ProtectedRoute allowedUserTypes={["service_provider"]}>
       <div className="min-h-screen bg-background">
-        {/* Header */}
-        <div className="border-b bg-background/80 backdrop-blur">
-          <div className="container mx-auto px-4 py-4">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground tracking-tight">Provider Dashboard</h1>
-              <p className="text-sm text-muted-foreground">Welcome back, {user?.full_name}</p>
-            </div>
+        <header className="border-b bg-background/80">
+          <div className="container mx-auto px-4 py-6">
+            <h1 className="text-2xl font-semibold text-foreground">Provider dashboard</h1>
+            <p className="text-sm text-muted-foreground">Welcome back, {user?.full_name}</p>
           </div>
-        </div>
+        </header>
 
-        <div className="container mx-auto px-4 py-8">
-          <div className="space-y-6">
-            {/* Tabs */}
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-5 rounded-lg">
-                <TabsTrigger value="time-slots">Time Slots</TabsTrigger>
-                <TabsTrigger value="availability">Calendar</TabsTrigger>
-                <TabsTrigger value="services">Services</TabsTrigger>
-                <TabsTrigger value="bookings">Bookings</TabsTrigger>
-                <TabsTrigger value="profile">Profile</TabsTrigger>
-              </TabsList>
+        <main className="container mx-auto px-4 py-8">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="flex w-full flex-wrap gap-2 rounded-xl bg-muted/60 p-1">
+              <TabsTrigger value="overview" className="flex-1 px-4 py-2 text-sm">Overview</TabsTrigger>
+              <TabsTrigger value="availability" className="flex-1 px-4 py-2 text-sm">Calendar</TabsTrigger>
+              <TabsTrigger value="time-slots" className="flex-1 px-4 py-2 text-sm">Availability rules</TabsTrigger>
+              <TabsTrigger value="services" className="flex-1 px-4 py-2 text-sm">Services</TabsTrigger>
+              <TabsTrigger value="bookings" className="flex-1 px-4 py-2 text-sm">Bookings</TabsTrigger>
+              <TabsTrigger value="profile" className="flex-1 px-4 py-2 text-sm">Profile</TabsTrigger>
+            </TabsList>
 
-              <TabsContent value="time-slots">
-                {provider && <NewTimeSlotManager providerId={provider.id} />}
-              </TabsContent>
-
-              <TabsContent value="availability">
-                <AvailabilityManager />
-              </TabsContent>
-
-              <TabsContent value="services">
+            <TabsContent value="overview" className="space-y-6">
+              <div className="grid gap-4 md:grid-cols-3">
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Services Management</CardTitle>
-                    <CardDescription>
-                      Manage your services, pricing, and descriptions
-                    </CardDescription>
+                  <CardHeader className="pb-2">
+                    <CardDescription>Upcoming bookings</CardDescription>
+                    <CardTitle className="text-3xl font-semibold">{metrics.upcoming}</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      <div className="flex justify-between items-center">
-                        <h3 className="text-lg font-semibold">Your Services</h3>
-                        <Button size="sm" onClick={loadServices}>Refresh</Button>
-                      </div>
-
-                      {loading ? (
-                        <div className="text-center py-8">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                          <p className="mt-2 text-muted-foreground">Loading services...</p>
-                        </div>
-                      ) : services.length === 0 ? (
-                        <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
-                          <h3 className="text-lg font-semibold text-muted-foreground mb-2">No Services Yet</h3>
-                          <p className="text-muted-foreground mb-4">Create your first service to start accepting bookings</p>
-                          <Button onClick={() => alert('Service creation coming soon')}>Create Service</Button>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {services.map((service: any) => (
-                            <Card key={service.id}>
-                              <CardContent className="p-4">
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <h4 className="font-semibold">{service.name}</h4>
-                                    <p className="text-sm text-muted-foreground">{service.description}</p>
-                                    <p className="text-sm text-muted-foreground">{service.duration} minutes</p>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="font-bold text-primary">{formatPrice(service.price)}</p>
-                                    <div className="flex gap-2 mt-2">
-                                      <Button variant="outline" size="sm" onClick={() => alert('Edit service coming soon')}>Edit</Button>
-                                      <Button variant="destructive" size="sm" onClick={() => alert('Delete service coming soon')}>Delete</Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                  <CardContent className="text-sm text-muted-foreground">
+                    Keep an eye on your next appointments.
                   </CardContent>
                 </Card>
-              </TabsContent>
-
-              <TabsContent value="bookings">
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Recent Bookings</CardTitle>
-                    <CardDescription>
-                      Manage your upcoming and past appointments
-                    </CardDescription>
+                  <CardHeader className="pb-2">
+                    <CardDescription>Active services</CardDescription>
+                    <CardTitle className="text-3xl font-semibold">{services.length}</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    {loading ? (
-                      <div className="text-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                        <p className="mt-2 text-muted-foreground">Loading bookings...</p>
+                  <CardContent className="text-sm text-muted-foreground">
+                    Organise the services you offer to customers.
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardDescription>Revenue this month</CardDescription>
+                    <CardTitle className="text-3xl font-semibold">{formatPrice(metrics.revenueThisMonth)}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-muted-foreground">
+                    Based on confirmed and completed bookings.
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+                <Card className="self-start">
+                  <CardHeader className="flex flex-row items-center justify-between gap-4">
+                    <div>
+                      <CardTitle className="text-lg">Upcoming schedule</CardTitle>
+                      <CardDescription>Next few confirmed bookings</CardDescription>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setActiveTab("bookings")}
+                      disabled={bookingsLoading}
+                    >
+                      View all
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {bookingsLoading && !bookingsLoaded ? (
+                      <div className="text-center text-sm text-muted-foreground py-6">
+                        Loading bookings…
                       </div>
-                    ) : bookings.length === 0 ? (
-                      <div className="text-center py-12">
-                        <h3 className="text-lg font-semibold text-muted-foreground mb-2">No Bookings Yet</h3>
-                        <p className="text-muted-foreground">Your appointments will appear here</p>
+                    ) : upcomingBookings.length === 0 ? (
+                      <div className="rounded-md border border-dashed border-muted-foreground/40 p-6 text-center text-sm text-muted-foreground">
+                        Once you have bookings scheduled they will appear here.
                       </div>
                     ) : (
-                      <div className="space-y-4">
-                        {bookings.map((booking: any) => (
-                          <Card key={booking.id} className="p-4">
-                            <div className="flex justify-between items-start">
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <h4 className="font-semibold">{booking.service_name}</h4>
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
-                                    {booking.status}
-                                  </span>
-                                </div>
-                                <p className="text-sm text-muted-foreground">
-                                  Customer: {booking.customer_name}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  📅 {formatAppointmentDateTime(booking.appointment_start_time, booking.appointment_end_time)}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  Booked on: {new Date(booking.created_at).toLocaleDateString()}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-bold text-primary">{formatPrice(booking.total_price)}</p>
-                                <div className="flex gap-2 mt-2">
-                                  {booking.status === 'confirmed' && (
-                                    <>
-                                      <Button variant="outline" size="sm">Reschedule</Button>
-                                      <Button variant="destructive" size="sm">Cancel</Button>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </Card>
-                        ))}
-                      </div>
+                      upcomingBookings.slice(0, 4).map((booking: any) => (
+                        <div
+                          key={booking.id}
+                          className="flex items-start justify-between rounded-lg border border-border bg-card px-4 py-3"
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{booking.service_name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatAppointmentDateTime(booking.appointment_start_time, booking.appointment_end_time)}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">{booking.customer_name}</p>
+                          </div>
+                          <span className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusStyles(booking.status)}`}>
+                            {booking.status}
+                          </span>
+                        </div>
+                      ))
                     )}
                   </CardContent>
                 </Card>
-              </TabsContent>
 
-              <TabsContent value="profile">
-                <Card>
+                <Card className="self-start">
                   <CardHeader>
-                    <CardTitle>Provider Profile</CardTitle>
-                    <CardDescription>
-                      Update your business information and settings
-                    </CardDescription>
+                    <CardTitle className="text-lg">Quick actions</CardTitle>
+                    <CardDescription>Jump into common tasks</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-12">
-                      <h3 className="text-lg font-semibold text-muted-foreground mb-2">Profile Management</h3>
-                      <p className="text-muted-foreground mb-4">This section is coming soon</p>
-                      <Button variant="outline">Update Profile</Button>
-                    </div>
+                  <CardContent className="space-y-3">
+                    <Button className="w-full" onClick={() => setActiveTab("availability")}>
+                      Review calendar
+                    </Button>
+                    <Button className="w-full" variant="outline" onClick={() => setActiveTab("time-slots")}>
+                      Update working hours
+                    </Button>
+                    <Button className="w-full" variant="outline" onClick={() => setActiveTab("services")}>
+                      Manage services
+                    </Button>
                   </CardContent>
                 </Card>
-              </TabsContent>
-            </Tabs>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
-                {error}
               </div>
-            )}
-          </div>
-        </div>
+            </TabsContent>
+
+            <TabsContent value="availability">
+              <AvailabilityManager refreshToken={scheduleRevision} />
+            </TabsContent>
+
+            <TabsContent value="time-slots">
+              {provider && (
+                <NewTimeSlotManager
+                  providerId={provider.id}
+                  onScheduleChange={() => setScheduleRevision((prev) => prev + 1)}
+                />
+              )}
+              {!provider && (
+                <Card>
+                  <CardContent className="py-10 text-center text-sm text-muted-foreground">
+                    We are preparing your provider profile. Try again in a moment.
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="services">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between gap-4">
+                  <div>
+                    <CardTitle>Services</CardTitle>
+                    <CardDescription>Create, price, and update what you offer</CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => void loadServices(true)} disabled={servicesLoading}>
+                      Refresh
+                    </Button>
+                    <Button size="sm" onClick={() => alert("Service creation coming soon")}>Add service</Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {servicesLoading && !servicesLoaded ? (
+                    <div className="py-8 text-center text-sm text-muted-foreground">Loading services…</div>
+                  ) : services.length === 0 ? (
+                    <div className="rounded-md border border-dashed border-muted-foreground/40 p-8 text-center">
+                      <h3 className="text-base font-medium text-foreground">No services yet</h3>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Add your first service to start accepting bookings.
+                      </p>
+                      <Button className="mt-4" onClick={() => alert("Service creation coming soon")}>Create service</Button>
+                    </div>
+                  ) : (
+                    services.map((service: any) => (
+                      <Card key={service.id} className="border border-border bg-card">
+                        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="space-y-1">
+                            <h4 className="text-base font-semibold text-foreground">{service.name}</h4>
+                            <p className="text-sm text-muted-foreground">{service.description}</p>
+                            <p className="text-xs text-muted-foreground">Duration: {service.duration} minutes</p>
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <span className="text-lg font-semibold text-foreground">{formatPrice(service.price)}</span>
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm" onClick={() => alert("Edit service coming soon")}>Edit</Button>
+                              <Button variant="destructive" size="sm" onClick={() => alert("Delete service coming soon")}>Delete</Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="bookings">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between gap-4">
+                  <div>
+                    <CardTitle>Bookings</CardTitle>
+                    <CardDescription>Manage upcoming and past appointments</CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => void loadBookings(true)} disabled={bookingsLoading}>
+                    Refresh
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {bookingsLoading && !bookingsLoaded ? (
+                    <div className="py-8 text-center text-sm text-muted-foreground">Loading bookings…</div>
+                  ) : bookings.length === 0 ? (
+                    <div className="rounded-md border border-dashed border-muted-foreground/40 p-8 text-center text-sm text-muted-foreground">
+                      No bookings yet. Your appointments will appear here once clients book a slot.
+                    </div>
+                  ) : (
+                    bookings.map((booking: any) => (
+                      <Card key={booking.id} className="border border-border bg-card">
+                        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-base font-semibold text-foreground">{booking.service_name}</h4>
+                              <span className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusStyles(booking.status)}`}>
+                                {booking.status}
+                              </span>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{booking.customer_name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {formatAppointmentDateTime(booking.appointment_start_time, booking.appointment_end_time)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Booked on {new Date(booking.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <span className="text-lg font-semibold text-foreground">{formatPrice(booking.total_price)}</span>
+                            {booking.status === "confirmed" && (
+                              <div className="flex gap-2">
+                                <Button variant="outline" size="sm">Reschedule</Button>
+                                <Button variant="destructive" size="sm">Cancel</Button>
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="profile">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Profile</CardTitle>
+                  <CardDescription>Update your business information and settings</CardDescription>
+                </CardHeader>
+                <CardContent className="py-10 text-center text-sm text-muted-foreground">
+                  Profile management tools are coming soon.
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+
+          {error && (
+            <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {error}
+            </div>
+          )}
+        </main>
       </div>
     </ProtectedRoute>
   )
-} 
+}

@@ -5,7 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui"
 import { Calendar } from "lucide-react"
 import { AvailabilityCalendar } from "./AvailabilityCalendar"
 
-export function AvailabilityManager() {
+interface AvailabilityManagerProps {
+  refreshToken?: number
+}
+
+export function AvailabilityManager({ refreshToken = 0 }: AvailabilityManagerProps) {
   return (
     <Card>
       <CardHeader className="pb-4">
@@ -16,8 +20,8 @@ export function AvailabilityManager() {
       </CardHeader>
       
       <CardContent>
-        <AvailabilityCalendar />
+        <AvailabilityCalendar refreshToken={refreshToken} />
       </CardContent>
     </Card>
   )
-} 
+}
